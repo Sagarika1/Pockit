@@ -24,6 +24,11 @@ const STYLES: Record<string, { label: string; cls: string; icon: React.ReactNode
       </>
     ),
   },
+  denied: {
+    label: "Denied",
+    cls: "bg-no-bg text-no-tx",
+    icon: <path d="M6 6l12 12M18 6L6 18" />,
+  },
 };
 
 export default function StatusChip({ status }: { status: string }) {

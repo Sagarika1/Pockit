@@ -1,8 +1,9 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
 import type { ColDef, ICellRendererParams, ValueFormatterParams } from "ag-grid-community";
-import { AllCommunityModule, themeQuartz, colorSchemeDark } from "ag-grid-community";
+import { AllCommunityModule, themeQuartz } from "ag-grid-community";
 import { AgGridProvider, AgGridReact } from "ag-grid-react";
+import StatusChip from "@/components/StatusChip";
 
 type Claim = {
   id: string;
@@ -17,37 +18,33 @@ type Claim = {
 
 const modules = [AllCommunityModule];
 
-const gridTheme = themeQuartz.withPart(colorSchemeDark).withParams({
-  backgroundColor: "#000000",
-  foregroundColor: "#EDEDED",
-  headerBackgroundColor: "#000000",
-  headerTextColor: "#8A8A8F",
-  headerFontWeight: 500,
-  borderColor: "rgba(255,255,255,0.08)",
-  rowHoverColor: "rgba(139,156,255,0.06)",
-  accentColor: "#8B9CFF",
+// Every color points at the CSS variables from globals.css,
+// so the grid switches with the light/dark toggle automatically.
+const gridTheme = themeQuartz.withParams({
+  backgroundColor: "var(--card)",
+  chromeBackgroundColor: "var(--card)",
+  foregroundColor: "var(--ink)",
+  headerBackgroundColor: "var(--card)",
+  headerTextColor: "var(--muted)",
+  headerFontSize: 12,
+  headerFontWeight: 600,
+  borderColor: "var(--line)",
+  rowHoverColor: "var(--soft)",
+  accentColor: "var(--brand)",
+  inputBackgroundColor: "var(--page)",
   fontFamily: "inherit",
   fontSize: 13,
   spacing: 9,
-  wrapperBorderRadius: 12,
+  wrapperBorder: true,
+  wrapperBorderRadius: 14,
   columnBorder: false,
   headerColumnBorder: false,
 });
 
-const STATUS: Record<string, { label: string; color: string }> = {
-  paid: { label: "Paid", color: "#5FD3A0" },
-  pending_review: { label: "Needs review", color: "#F2C46D" },
-  rejected: { label: "Rejected", color: "#FF7A7A" },
-  denied: { label: "Denied", color: "#FF7A7A" },
-  payout_failed: { label: "Payout failed", color: "#FF7A7A" },
-};
-
 function StatusCell(p: ICellRendererParams<Claim>) {
-  const s = STATUS[p.value as string] ?? { label: p.value, color: "#8A8A8F" };
   return (
-    <span className="inline-flex items-center gap-2">
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />
-      {s.label}
+    <span className="inline-flex h-full items-center">
+      <StatusChip status={p.value as string} />
     </span>
   );
 }
@@ -63,7 +60,7 @@ export default function AuditGrid({ claims }: { claims: Claim[] }) {
     () => [
       { headerName: "Member", field: "memberName", minWidth: 110 },
       { headerName: "Vendor", field: "receipt.vendor", minWidth: 150 },
-      { headerName: "Amount", field: "receipt.total", filter: "agNumberColumnFilter", valueFormatter: money, cellClass: "tabular-nums", minWidth: 110 },
+      { headerName: "Amount", field: "receipt.total", filter: "agNumberColumnFilter", valueFormatter: money, cellClass: "tabular-nums font-semibold", minWidth: 110 },
       {
         headerName: "Category",
         field: "receipt.category",
@@ -77,7 +74,7 @@ export default function AuditGrid({ claims }: { claims: Claim[] }) {
           p.data?.reviewedAt ? "Treasurer" : p.data?.status === "pending_review" ? "Waiting" : "Rules",
         minWidth: 120,
       },
-      { headerName: "Status", field: "status", cellRenderer: StatusCell, minWidth: 140 },
+      { headerName: "Status", field: "status", cellRenderer: StatusCell, minWidth: 150 },
       {
         headerName: "Submitted",
         field: "createdAt",
@@ -86,7 +83,7 @@ export default function AuditGrid({ claims }: { claims: Claim[] }) {
           p.value ? new Date(p.value).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "",
         minWidth: 150,
       },
-      { headerName: "PayPal payout ID", field: "payoutBatchId", minWidth: 170, cellClass: "text-zinc-500" },
+      { headerName: "PayPal payout ID", field: "payoutBatchId", minWidth: 170, cellClass: "text-muted" },
     ],
     []
   );
@@ -105,17 +102,28 @@ export default function AuditGrid({ claims }: { claims: Claim[] }) {
   return (
     <AgGridProvider modules={modules}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-medium">Audit log</h2>
+        <h2 className="text-lg font-semibold">Audit log</h2>
         <div className="flex gap-2">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search claims"
-            className="w-full sm:w-56 rounded-full border bg-transparent px-4 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:border-[#8B9CFF]"
-          />
+          <div className="relative w-full sm:w-64">
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" aria-hidden="true"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-4-4" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search claims"
+              aria-label="Search claims"
+              className="h-11 w-full rounded-xl border border-line bg-card pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </div>
           <button
             onClick={exportCsv}
-            className="whitespace-nowrap rounded-full border px-4 py-2 text-sm text-zinc-300 hover:text-white hover:border-white/30 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8B9CFF]"
+            className="h-11 whitespace-nowrap rounded-xl border border-line bg-card px-4 text-sm font-semibold text-brand hover:bg-soft transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             Export CSV
           </button>
