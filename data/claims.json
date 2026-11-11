@@ -1,5 +1,54 @@
 [
   {
+    "id": "0fe813f0-bf3c-4538-916e-f3e307679e94",
+    "memberName": "Maya",
+    "memberEmail": "sb-5svzx53843471@personal.example.com",
+    "receipt": {
+      "vendor": "CASH RECEIPT",
+      "date": "2018-01-01",
+      "total": 84.8,
+      "currency": "USD",
+      "category": "other",
+      "contains_alcohol": false,
+      "line_items": [
+        {
+          "description": "Lorem",
+          "amount": 6.5
+        },
+        {
+          "description": "Ipsum",
+          "amount": 7.5
+        },
+        {
+          "description": "Dolor Sit",
+          "amount": 48
+        },
+        {
+          "description": "Amet",
+          "amount": 9.3
+        },
+        {
+          "description": "Consectetur",
+          "amount": 11.9
+        },
+        {
+          "description": "Adipiscing Elit",
+          "amount": 1.2
+        },
+        {
+          "description": "Sed Do",
+          "amount": 0.4
+        }
+      ],
+      "needs_review": true,
+      "review_reason": "Appears to be a template/sample receipt with placeholder Lorem Ipsum text. No real business name (header is only \"Cash Receipt\"), and the currency is not shown (USD is a guess). The date is 2018, far from today. Line items add up to 84.80, which equals the total, but the printed subtotal is 76.80 plus 8.00 tax, so the figures don't reconcile."
+    },
+    "decision": "needs_review",
+    "rule": "Uncategorized expense",
+    "status": "pending_review",
+    "createdAt": "2026-11-11T03:55:03.593Z"
+  },
+  {
     "id": "afc1dcca-d235-4245-b978-0a2f6c4b15a1",
     "memberName": "Maya",
     "memberEmail": "sb-5svzx53843471@personal.example.com",
