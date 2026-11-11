@@ -1,0 +1,39 @@
+[
+  {
+    "id": "afc1dcca-d235-4245-b978-0a2f6c4b15a1",
+    "memberName": "Maya",
+    "memberEmail": "sb-5svzx53843471@personal.example.com",
+    "receipt": {
+      "vendor": "Downtown Hotel",
+      "date": "2026-11-15",
+      "total": 389,
+      "currency": "USD",
+      "category": "hotel",
+      "contains_alcohol": false,
+      "line_items": []
+    },
+    "decision": "needs_review",
+    "rule": "Hotels and flights always need treasurer review",
+    "status": "pending_review",
+    "createdAt": "2026-11-11T03:15:15.251Z"
+  },
+  {
+    "id": "795072d5-d053-40ad-8d31-a89fe22f3899",
+    "memberName": "Maya",
+    "memberEmail": "sb-5svzx53843471@personal.example.com",
+    "receipt": {
+      "vendor": "Airport Grill",
+      "date": "2026-11-12",
+      "total": 18,
+      "currency": "USD",
+      "category": "meals",
+      "contains_alcohol": false,
+      "line_items": []
+    },
+    "decision": "auto_approve",
+    "rule": "meals under $50 during the trip",
+    "status": "paid",
+    "createdAt": "2026-11-11T03:14:22.849Z",
+    "payoutBatchId": "NB3DS7TSFUZHN"
+  }
+]
