@@ -1,16 +1,53 @@
 @import "tailwindcss";
 
+/* Lets the "dark" class on <html> switch the theme, instead of the OS setting */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  color-scheme: dark;
+  --page: #F4F7FB;
+  --card: #FFFFFF;
+  --line: #D9E2EF;
+  --ink: #0B1F3A;
+  --muted: #51627A;
+  --brand: #0062C4;
+  --on-brand: #FFFFFF;
+  --soft: #E6F0FC;
+  --ok-bg: #DDF3E4;  --ok-tx: #14532D;
+  --no-bg: #FBE3E3;  --no-tx: #8A1C1C;
+  --wa-bg: #FFF0CC;  --wa-tx: #6B4A00;
 }
 
-@layer base {
-  *, ::before, ::after {
-    border-color: rgb(255 255 255 / 0.1);
-  }
-  body {
-    background: #000;
-    color: #ededed;
-    font-family: var(--font-sans), system-ui, sans-serif;
-  }
+.dark {
+  --page: #0A1220;
+  --card: #111C30;
+  --line: #243350;
+  --ink: #EAF1FB;
+  --muted: #9FB1CB;
+  --brand: #3B9BFF;
+  --on-brand: #04122A;
+  --soft: #16294A;
+  --ok-bg: #12351F;  --ok-tx: #9BE3B0;
+  --no-bg: #3F1A1C;  --no-tx: #FFB4B4;
+  --wa-bg: #3A2E10;  --wa-tx: #FFD98A;
+}
+
+/* Turns the variables into Tailwind classes: bg-page, text-ink, border-line... */
+@theme inline {
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
+  --color-soft: var(--soft);
+  --color-ok-bg: var(--ok-bg);  --color-ok-tx: var(--ok-tx);
+  --color-no-bg: var(--no-bg);  --color-no-tx: var(--no-tx);
+  --color-wa-bg: var(--wa-bg);  --color-wa-tx: var(--wa-tx);
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
