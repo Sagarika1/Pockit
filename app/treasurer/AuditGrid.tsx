@@ -118,7 +118,7 @@ export default function AuditGrid({ claims }: { claims: Claim[] }) {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search claims"
               aria-label="Search claims"
-              className="h-11 w-full rounded-xl border border-line bg-card pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand"
+              className="h-11 w-full rounded-full border border-line bg-card pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           <button
