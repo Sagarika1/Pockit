@@ -6,6 +6,8 @@ export type Receipt = {
   category: "meals" | "rideshare" | "registration" | "hotel" | "flight" | "other";
   contains_alcohol: boolean;
   line_items: { description: string; amount: number }[];
+  needs_review?: boolean;
+  review_reason?: string | null;
 };
 
 export type Decision = {
@@ -27,6 +29,11 @@ export function evaluate(r: Receipt): Decision {
 
   if (r.contains_alcohol)
     return { decision: "reject", rule: "Alcohol isn't reimbursable" };
+
+  if (r.needs_review)
+  return { decision: "needs_review", rule: r.review_reason ?? "Receipt could not be read confidently" };
+
+  
 
   if (r.category === "hotel" || r.category === "flight")
     return { decision: "needs_review", rule: "Hotels and flights always need treasurer review" };

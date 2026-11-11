@@ -20,6 +20,19 @@ const STATUS: Record<string, { title: string; style: string }> = {
   payout_failed: { title: "Approved, but the payout failed", style: "bg-red-50 border-red-300 dark:bg-red-950 dark:border-red-800" },
 };
 
+async function shrinkImage(file: File, maxSide = 1600): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  const blob: Blob = await new Promise((res) =>
+    canvas.toBlob((b) => res(b!), "image/jpeg", 0.85)
+  );
+  return new File([blob], "receipt.jpg", { type: "image/jpeg" });
+}
+
 export default function SubmitPage() {
   const [name, setName] = useState("Maya");
   const [email, setEmail] = useState("sb-5svzx53843471@personal.example.com");
@@ -34,7 +47,7 @@ export default function SubmitPage() {
     setStep("reading");
     setError("");
     const form = new FormData();
-    form.append("receipt", file);
+    form.append("receipt", await shrinkImage(file));
     try {
       const res = await fetch("/api/parse-receipt", { method: "POST", body: form });
       const data = await res.json();
