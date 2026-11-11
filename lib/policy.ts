@@ -1,3 +1,5 @@
+import { CATEGORY_LABEL, DEFAULT_RULES, noun, shortDate, usd, type Rules } from "./rules";
+
 export type Receipt = {
   vendor: string;
   date: string | null;
@@ -15,44 +17,49 @@ export type Decision = {
   rule: string;
 };
 
-export const TRIP = {
-  name: "National Student Engineering Conference",
-  start: "2026-11-12",
-  end: "2026-11-15",
-  conferenceKeywords: ["engineering conference", "nsec"],
-  mealCap: 50,
-  rideCap: 40,
-};
+const cents = (n: number) => Math.round(n * 100);
 
-export function evaluate(r: Receipt): Decision {
-  const onTrip = r.date !== null && r.date >= TRIP.start && r.date <= TRIP.end;
-
-  if (r.contains_alcohol)
-    return { decision: "reject", rule: "Alcohol isn't reimbursable" };
+/**
+ * The money decision. The AI only reads the receipt; this plain code decides.
+ * `rules` come from the organization (Rules page). The default keeps old callers working.
+ */
+export function evaluate(r: Receipt, rules: Rules = DEFAULT_RULES): Decision {
+  if (r.contains_alcohol && rules.blockAlcohol) return { decision: "reject", rule: "Alcohol can't be reimbursed" };
 
   if (r.needs_review)
-  return { decision: "needs_review", rule: r.review_reason ?? "Receipt could not be read confidently" };
+    return { decision: "needs_review", rule: r.review_reason ?? "We couldn't read this receipt clearly" };
 
-  
+  const c = rules.categories[r.category];
+  const label = CATEGORY_LABEL[r.category].toLowerCase();
 
-  if (r.category === "hotel" || r.category === "flight")
-    return { decision: "needs_review", rule: "Hotels and flights always need treasurer review" };
+  if (c.action === "deny") return { decision: "reject", rule: `${CATEGORY_LABEL[r.category]} aren't reimbursed by this organization` };
+  if (c.action === "review") return { decision: "needs_review", rule: `${noun(r.category)} needs treasurer approval` };
 
-  if (r.category === "registration") {
+  // action === "auto" from here on
+  if (r.category === "registration" && rules.registrationVendorKeywords.length > 0) {
     const v = r.vendor.toLowerCase();
-    return TRIP.conferenceKeywords.some((k) => v.includes(k))
-      ? { decision: "auto_approve", rule: "Registration matches the approved conference" }
-      : { decision: "needs_review", rule: "Registration vendor doesn't match the conference" };
+    if (!rules.registrationVendorKeywords.some((k) => v.includes(k)))
+      return { decision: "needs_review", rule: "Registration isn't from the approved event" };
   }
 
-  if (r.category === "meals" || r.category === "rideshare") {
-    if (!onTrip)
-      return { decision: "needs_review", rule: "Receipt date is outside the trip dates" };
-    const cap = r.category === "meals" ? TRIP.mealCap : TRIP.rideCap;
-    return r.total <= cap
-      ? { decision: "auto_approve", rule: `${r.category} under $${cap} during the trip` }
-      : { decision: "needs_review", rule: `${r.category} over the $${cap} cap` };
+  const checkDates = rules.requireEventDates && r.category !== "registration";
+  if (checkDates) {
+    const onEvent = r.date !== null && r.date >= rules.eventStart && r.date <= rules.eventEnd;
+    if (!onEvent)
+      return { decision: "needs_review", rule: `Dated outside the event (${shortDate(rules.eventStart)} to ${shortDate(rules.eventEnd)})` };
   }
 
-  return { decision: "needs_review", rule: "Uncategorized expense" };
+  if (c.cap !== null && cents(r.total) > cents(c.cap))
+    return { decision: "needs_review", rule: `Over the ${usd(c.cap)} limit for ${label}` };
+
+  if (cents(r.total) > cents(rules.autoPayCeiling))
+    return { decision: "needs_review", rule: `Over the ${usd(rules.autoPayCeiling)} automatic payment limit` };
+
+  const why =
+    r.category === "registration"
+      ? "Registration matches the approved event"
+      : c.cap !== null
+        ? `Within the ${usd(c.cap)} limit for ${label}${checkDates ? " and dated during the event" : ""}`
+        : `${CATEGORY_LABEL[r.category]} are paid automatically${checkDates ? " during the event" : ""}`;
+  return { decision: "auto_approve", rule: why };
 }

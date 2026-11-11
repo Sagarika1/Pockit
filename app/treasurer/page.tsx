@@ -1,88 +1,116 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import AuditGrid from "./AuditGrid";
 import StatusChip from "@/components/StatusChip";
+import { ErrorText, PageLoading, smallGhostBtn, smallPrimaryBtn } from "@/components/ui";
+import { useRequireRole } from "@/components/useMe";
+import AuditGrid from "./AuditGrid";
 
 type Claim = {
   id: string;
   memberName: string;
+  memberEmail?: string;
   receipt: { vendor: string; total: number; category: string; date: string | null };
   rule: string;
   status: string;
   createdAt: string;
   reviewedAt?: string;
+  reviewedBy?: string;
   payoutBatchId?: string;
 };
+type Person = { id: string; status: string };
+type Text = { id: string; to: string; body: string; status: string; error?: string; createdAt: string };
 
-function Stat({ label, value, accent, warn }: { label: string; value: string; accent?: boolean; warn?: boolean }) {
-  return (
-    <div className="rounded-2xl border border-line bg-card px-6 py-5">
+function Stat({ label, value, accent, warn, href }: { label: string; value: string; accent?: boolean; warn?: boolean; href?: string }) {
+  const body = (
+    <>
       <p className="mb-1 text-sm text-muted">{label}</p>
-      <p className={`text-4xl font-bold tracking-tight tabular-nums ${accent ? "text-brand" : warn ? "text-wa-tx" : "text-ink"}`}>
-        {value}
-      </p>
-    </div>
+      <p className={`text-4xl font-bold tracking-tight tabular-nums ${accent ? "text-brand" : warn ? "text-wa-tx" : "text-ink"}`}>{value}</p>
+    </>
+  );
+  const cls = "block rounded-2xl border border-line bg-card px-6 py-5";
+  return href ? (
+    <Link href={href} className={`${cls} transition-colors hover:border-brand`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
   );
 }
 
+const TEXT_STATUS: Record<string, string> = { sent: "Sent", demo: "Demo only (not sent)", failed: "Failed", skipped: "No phone number" };
+
 export default function TreasurerPage() {
+  const { me, ready } = useRequireRole("treasurer");
   const [claims, setClaims] = useState<Claim[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [texts, setTexts] = useState<{ mode: string; messages: Text[] }>({ mode: "demo", messages: [] });
   const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/claims", { cache: "no-store" });
-    setClaims(await res.json());
+    const [c, p, t] = await Promise.all([
+      fetch("/api/claims", { cache: "no-store" }),
+      fetch("/api/people", { cache: "no-store" }),
+      fetch("/api/notifications", { cache: "no-store" }),
+    ]);
+    if (c.ok) setClaims(await c.json());
+    if (p.ok) setPeople(await p.json());
+    if (t.ok) setTexts(await t.json());
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (ready) load();
+  }, [ready, load]);
 
   async function act(id: string, action: "approve" | "deny") {
     setBusy(id);
-    await fetch(`/api/claims/${id}`, {
+    setError("");
+    const res = await fetch(`/api/claims/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action }),
     });
+    if (!res.ok) setError((await res.json()).error || "Something went wrong.");
     await load();
     setBusy(null);
   }
 
+  if (!ready) return <PageLoading />;
+
   const pending = claims.filter((c) => c.status === "pending_review");
   const paidTotal = claims.filter((c) => c.status === "paid").reduce((s, c) => s + c.receipt.total, 0);
-  const autoHandled = claims.filter((c) => !c.reviewedAt && c.status !== "pending_review").length;
+  const automatic = claims.filter((c) => !c.reviewedAt && c.status !== "pending_review").length;
+  const waitingPeople = people.filter((p) => p.status === "pending").length;
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-14">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Treasurer dashboard</h1>
-        <p className="mt-2 text-lg text-muted">Review flagged claims and keep an eye on every payout.</p>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{me?.org?.name ?? "Overview"}</h1>
+        <p className="mt-2 text-lg text-muted">Approve or deny anything that needs a decision, and see every payment in one place.</p>
       </div>
 
-      <section className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Stat label="Reimbursed" value={`$${paidTotal.toFixed(2)}`} accent />
-        <Stat label="Handled by rules" value={`${autoHandled} of ${claims.length}`} />
+      <section className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Paid out" value={`$${paidTotal.toFixed(2)}`} accent />
+        <Stat label="Decided automatically" value={`${automatic} of ${claims.length}`} />
         <Stat label="Waiting on you" value={String(pending.length)} warn={pending.length > 0} />
+        <Stat label="People waiting to join" value={String(waitingPeople)} warn={waitingPeople > 0} href="/treasurer/people" />
       </section>
 
       <section className="mb-12">
-        <h2 className="mb-4 text-xl font-semibold">Needs your review</h2>
+        <h2 className="mb-4 text-xl font-semibold">Needs your decision</h2>
+        <div className="mb-3">
+          <ErrorText>{error}</ErrorText>
+        </div>
         {pending.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-card p-6 text-muted">
-            Nothing to review. Claims that break a rule will appear here.
-          </p>
+          <p className="rounded-2xl border border-line bg-card p-6 text-muted">Nothing to decide right now. Requests that need you will show up here.</p>
         ) : (
           <ul className="space-y-3">
             {pending.map((c) => (
-              <li
-                key={c.id}
-                className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 sm:flex-row sm:items-center"
-              >
+              <li key={c.id} className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 sm:flex-row sm:items-center">
                 <div className="min-w-0 flex-1">
                   <p>
-                    <span className="font-semibold">{c.memberName}</span>{" "}
-                    <span className="text-muted">at {c.receipt.vendor}</span>
+                    <span className="font-semibold">{c.memberName}</span> <span className="text-muted">at {c.receipt.vendor}</span>
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <StatusChip status="pending_review" />
@@ -91,18 +119,10 @@ export default function TreasurerPage() {
                 </div>
                 <p className="text-2xl font-bold tabular-nums">${c.receipt.total.toFixed(2)}</p>
                 <div className="flex gap-2">
-                  <button
-                    disabled={busy === c.id}
-                    onClick={() => act(c.id, "approve")}
-                    className="h-11 rounded-full bg-brand px-6 text-sm font-semibold text-on-brand transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                  >
+                  <button disabled={busy === c.id} onClick={() => act(c.id, "approve")} className={smallPrimaryBtn}>
                     {busy === c.id ? "Paying…" : "Approve and pay"}
                   </button>
-                  <button
-                    disabled={busy === c.id}
-                    onClick={() => act(c.id, "deny")}
-                    className="h-11 rounded-full border border-line px-6 text-sm font-semibold text-ink transition-colors hover:bg-soft disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                  >
+                  <button disabled={busy === c.id} onClick={() => act(c.id, "deny")} className={smallGhostBtn}>
                     Deny
                   </button>
                 </div>
@@ -113,6 +133,30 @@ export default function TreasurerPage() {
       </section>
 
       <AuditGrid claims={claims} />
+
+      <section className="mt-12">
+        <details className="rounded-2xl border border-line bg-card p-5">
+          <summary className="cursor-pointer text-[15px] font-semibold">Text messages we’ve sent ({texts.messages.length})</summary>
+          {texts.mode === "demo" && (
+            <p className="mt-3 rounded-xl bg-wa-bg px-4 py-3 text-sm text-wa-tx">Texts are in demo mode, so they’re saved here but not sent to phones. Add your Twilio details to send them for real.</p>
+          )}
+          {texts.messages.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">No texts yet.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-line">
+              {texts.messages.map((m) => (
+                <li key={m.id} className="py-3 text-sm">
+                  <p className="text-ink">{m.body}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    To {m.to} · {TEXT_STATUS[m.status] ?? m.status}
+                    {m.error ? ` (${m.error})` : ""} · {new Date(m.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
+      </section>
     </main>
   );
 }

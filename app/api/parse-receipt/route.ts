@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { ReceiptSchema, CATEGORIES } from "@/lib/receipt";
+import { requireMember } from "@/lib/auth";
+import { signReceipt } from "@/lib/session";
 
 const client = new Anthropic(); // reads ANTHROPIC_API_KEY from .env.local
 
@@ -8,6 +10,10 @@ const ALLOWED = ["image/jpeg", "image/png", "image/webp"] as const;
 type MediaType = (typeof ALLOWED)[number];
 
 export async function POST(req: NextRequest) {
+  // Only logged-in members can use the receipt reader (it costs money per call)
+  const auth = await requireMember();
+  if (!auth.ok) return auth.response;
+
   const form = await req.formData();
   const file = form.get("receipt") as File | null;
 
@@ -123,7 +129,8 @@ Rules:
       receipt.review_reason ??= "Total was zero or negative";
     }
 
-    return NextResponse.json(receipt);
+    // The signature lets /api/claims confirm these numbers came from here, unedited
+    return NextResponse.json({ ...receipt, receiptToken: signReceipt(receipt, auth.user.id) });
   } catch (err) {
     console.error("Anthropic error:", err);
     return NextResponse.json({ error: "Receipt reader is unavailable right now" }, { status: 500 });

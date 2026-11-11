@@ -1,36 +1,49 @@
+import { requireTreasurer } from "@/lib/auth";
+import { bad, readJson } from "@/lib/http";
+import { textMemberAboutClaim, textTreasurerAboutClaim } from "@/lib/notify";
 import { sendPayout } from "@/lib/paypal";
-import { getClaims, saveClaims } from "@/lib/store";
+import { getClaims, updateClaim } from "@/lib/store";
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const inFlight = new Set<string>(); // stops a double click from paying twice
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireTreasurer();
+  if (!auth.ok) return auth.response;
   const { id } = await params;
-  const { action } = (await req.json()) as { action: "approve" | "deny" };
+  const b = await readJson(req);
+  const action = b?.action;
+  if (action !== "approve" && action !== "deny") return bad("Unknown action.");
 
-  const claims = await getClaims();
-  const claim = claims.find((c) => c.id === id);
-  if (!claim) return Response.json({ error: "Claim not found" }, { status: 404 });
+  const existing = (await getClaims()).find((c) => c.id === id && c.orgId === auth.org.id);
+  if (!existing) return bad("Claim not found.", 404);
+  if (existing.status !== "pending_review") return bad(`This claim is already ${existing.status.replace("_", " ")}.`);
+  if (inFlight.has(id)) return bad("This claim is already being processed.", 409);
+  inFlight.add(id);
 
-  if (claim.status !== "pending_review")
-    return Response.json({ error: `Claim is already ${claim.status}` }, { status: 400 });
-
-  if (action === "deny") {
-    claim.status = "denied";
-  } else {
-    try {
-      claim.payoutBatchId = await sendPayout(
-        claim.memberEmail,
-        claim.receipt.total,
-        `Pockit: ${claim.receipt.vendor} (treasurer approved)`
-      );
-      claim.status = "paid";
-    } catch {
-      claim.status = "payout_failed";
+  try {
+    let payoutBatchId: string | undefined;
+    let status: "paid" | "denied" | "payout_failed" = "denied";
+    if (action === "approve") {
+      try {
+        payoutBatchId = await sendPayout(existing.memberEmail, existing.receipt.total, `Pockit: ${existing.receipt.vendor} (treasurer approved)`);
+        status = "paid";
+      } catch (err) {
+        console.error("Payout failed:", err);
+        status = "payout_failed";
+      }
     }
+    const claim = await updateClaim(id, (c) => {
+      c.status = status;
+      if (payoutBatchId) c.payoutBatchId = payoutBatchId;
+      c.reviewedAt = new Date().toISOString();
+      c.reviewedBy = auth.user.name;
+    });
+    if (claim) {
+      await textMemberAboutClaim(claim, auth.org, "treasurer");
+      if (claim.status === "payout_failed") await textTreasurerAboutClaim(claim, auth.org);
+    }
+    return Response.json(claim);
+  } finally {
+    inFlight.delete(id);
   }
-
-  claim.reviewedAt = new Date().toISOString();
-  await saveClaims(claims);
-  return Response.json(claim);
 }
