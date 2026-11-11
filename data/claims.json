@@ -14,8 +14,10 @@
     },
     "decision": "needs_review",
     "rule": "Hotels and flights always need treasurer review",
-    "status": "pending_review",
-    "createdAt": "2026-11-11T03:15:15.251Z"
+    "status": "paid",
+    "createdAt": "2026-11-11T03:15:15.251Z",
+    "payoutBatchId": "KYQA85PV4PRHW",
+    "reviewedAt": "2026-11-11T03:21:30.489Z"
   },
   {
     "id": "795072d5-d053-40ad-8d31-a89fe22f3899",

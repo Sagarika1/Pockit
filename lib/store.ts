@@ -11,6 +11,7 @@ export type Claim = {
   rule: string;
   status: "paid" | "pending_review" | "rejected" | "denied" | "payout_failed";
   payoutBatchId?: string;
+   reviewedAt?: string;
   createdAt: string;
 };
 
