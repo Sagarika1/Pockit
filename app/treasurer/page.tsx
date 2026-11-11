@@ -2,6 +2,9 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import AuditGrid from "./AuditGrid";
+import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
+import StatusChip from "@/components/StatusChip";
 
 type Claim = {
   id: string;
@@ -14,11 +17,13 @@ type Claim = {
   payoutBatchId?: string;
 };
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Stat({ label, value, accent, warn }: { label: string; value: string; accent?: boolean; warn?: boolean }) {
   return (
-    <div className="py-6 sm:px-6 sm:first:pl-0">
-      <p className="text-sm text-zinc-500 mb-1">{label}</p>
-      <p className={`text-3xl font-medium tracking-tight tabular-nums ${highlight ? "text-[#F2C46D]" : ""}`}>{value}</p>
+    <div className="bg-card border border-line rounded-2xl px-5 py-4">
+      <p className="text-sm text-muted mb-1">{label}</p>
+      <p className={`text-3xl font-bold tracking-tight tabular-nums ${accent ? "text-brand" : warn ? "text-wa-tx" : "text-ink"}`}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -52,62 +57,73 @@ export default function TreasurerPage() {
   const autoHandled = claims.filter((c) => !c.reviewedAt && c.status !== "pending_review").length;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10 sm:px-10">
-      <header className="flex items-baseline justify-between mb-12">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Pockit</h1>
-          <span className="text-zinc-500">Treasurer</span>
-        </div>
-        <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
-          Submit a receipt
-        </Link>
-      </header>
+    <main className="min-h-screen bg-page text-ink">
+      <div className="mx-auto max-w-6xl px-6 py-8 sm:px-10">
+        <header className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Logo />
+            <span className="text-muted hidden sm:inline">Treasurer</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="text-sm font-medium text-brand hover:underline">
+              Submit a receipt
+            </Link>
+            <ThemeToggle />
+          </div>
+        </header>
 
-      <section className="grid grid-cols-1 sm:grid-cols-3 border-y divide-y sm:divide-y-0 sm:divide-x mb-14">
-        <Stat label="Reimbursed" value={`$${paidTotal.toFixed(2)}`} />
-        <Stat label="Handled by rules" value={`${autoHandled} of ${claims.length}`} />
-        <Stat label="Waiting on you" value={String(pending.length)} highlight={pending.length > 0} />
-      </section>
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          <Stat label="Reimbursed" value={`$${paidTotal.toFixed(2)}`} accent />
+          <Stat label="Handled by rules" value={`${autoHandled} of ${claims.length}`} />
+          <Stat label="Waiting on you" value={String(pending.length)} warn={pending.length > 0} />
+        </section>
 
-      <section className="mb-14">
-        <h2 className="text-lg font-medium mb-4">Needs your review</h2>
-        {pending.length === 0 ? (
-          <p className="text-zinc-500">Nothing to review. Claims that break a rule will appear here.</p>
-        ) : (
-          <ul className="border-y divide-y">
-            {pending.map((c) => (
-              <li key={c.id} className="flex flex-col sm:flex-row sm:items-center gap-4 py-4">
-                <div className="flex-1 min-w-0">
-                  <p>
-                    <span className="font-medium">{c.memberName}</span>{" "}
-                    <span className="text-zinc-400">at {c.receipt.vendor}</span>
-                  </p>
-                  <p className="text-sm text-[#F2C46D]/80 mt-1">{c.rule}</p>
-                </div>
-                <p className="text-lg font-medium tabular-nums">${c.receipt.total.toFixed(2)}</p>
-                <div className="flex gap-2">
-                  <button
-                    disabled={busy === c.id}
-                    onClick={() => act(c.id, "approve")}
-                    className="rounded-full bg-[#8B9CFF] px-4 py-2 text-sm font-medium text-black hover:bg-[#A3B1FF] transition-colors disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8B9CFF]"
-                  >
-                    {busy === c.id ? "Paying…" : "Approve and pay"}
-                  </button>
-                  <button
-                    disabled={busy === c.id}
-                    onClick={() => act(c.id, "deny")}
-                    className="rounded-full border px-4 py-2 text-sm text-zinc-300 hover:text-white hover:border-white/30 transition-colors disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8B9CFF]"
-                  >
-                    Deny
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <section className="mb-10">
+          <h2 className="text-lg font-semibold mb-3">Needs your review</h2>
+          {pending.length === 0 ? (
+            <p className="text-muted">Nothing to review. Claims that break a rule will appear here.</p>
+          ) : (
+            <ul className="space-y-3">
+              {pending.map((c) => (
+                <li
+                  key={c.id}
+                  className="bg-card border border-line rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p>
+                      <span className="font-semibold">{c.memberName}</span>{" "}
+                      <span className="text-muted">at {c.receipt.vendor}</span>
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <StatusChip status="pending_review" />
+                      <span className="text-sm text-muted">{c.rule}</span>
+                    </div>
+                  </div>
+                  <p className="text-xl font-bold tabular-nums">${c.receipt.total.toFixed(2)}</p>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={busy === c.id}
+                      onClick={() => act(c.id, "approve")}
+                      className="h-11 rounded-xl bg-brand px-5 text-sm font-semibold text-on-brand hover:opacity-90 transition-opacity disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    >
+                      {busy === c.id ? "Paying…" : "Approve and pay"}
+                    </button>
+                    <button
+                      disabled={busy === c.id}
+                      onClick={() => act(c.id, "deny")}
+                      className="h-11 rounded-xl border border-line px-5 text-sm font-semibold text-ink hover:bg-soft transition-colors disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    >
+                      Deny
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-      <AuditGrid claims={claims} />
+        <AuditGrid claims={claims} />
+      </div>
     </main>
   );
 }

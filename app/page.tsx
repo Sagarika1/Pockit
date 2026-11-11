@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type Receipt = {
   vendor: string;
@@ -10,28 +12,20 @@ type Receipt = {
   category: string;
   contains_alcohol: boolean;
   line_items: { description: string; amount: number }[];
+  needs_review?: boolean;
+  review_reason?: string | null;
 };
 type Claim = { status: string; rule: string; receipt: Receipt };
 
 const STATUS: Record<string, { title: string; style: string }> = {
-  paid: { title: "Paid to your PayPal", style: "bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-800" },
-  pending_review: { title: "Sent to your treasurer for review", style: "bg-amber-50 border-amber-300 dark:bg-amber-950 dark:border-amber-800" },
-  rejected: { title: "Not reimbursable", style: "bg-red-50 border-red-300 dark:bg-red-950 dark:border-red-800" },
-  payout_failed: { title: "Approved, but the payout failed", style: "bg-red-50 border-red-300 dark:bg-red-950 dark:border-red-800" },
+  paid: { title: "Paid to your PayPal", style: "bg-ok-bg text-ok-tx border-ok-tx/30" },
+  pending_review: { title: "Sent to your treasurer for review", style: "bg-wa-bg text-wa-tx border-wa-tx/30" },
+  rejected: { title: "Not reimbursable", style: "bg-no-bg text-no-tx border-no-tx/30" },
+  payout_failed: { title: "Approved, but the payout failed", style: "bg-no-bg text-no-tx border-no-tx/30" },
 };
 
-async function shrinkImage(file: File, maxSide = 1600): Promise<File> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  const blob: Blob = await new Promise((res) =>
-    canvas.toBlob((b) => res(b!), "image/jpeg", 0.85)
-  );
-  return new File([blob], "receipt.jpg", { type: "image/jpeg" });
-}
+const inputClass =
+  "w-full h-12 rounded-xl border border-line bg-page px-3.5 text-[15px] text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand";
 
 export default function SubmitPage() {
   const [name, setName] = useState("Maya");
@@ -47,7 +41,7 @@ export default function SubmitPage() {
     setStep("reading");
     setError("");
     const form = new FormData();
-    form.append("receipt", await shrinkImage(file));
+    form.append("receipt", file);
     try {
       const res = await fetch("/api/parse-receipt", { method: "POST", body: form });
       const data = await res.json();
@@ -78,56 +72,92 @@ export default function SubmitPage() {
   }
 
   return (
-    <main className="max-w-lg mx-auto p-6 sm:p-10">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Pockit</h1>
-        <Link href="/treasurer" className="text-sm underline opacity-70">Treasurer view</Link>
-      </div>
-      <p className="mb-6 opacity-80">Snap your trip receipt. Get reimbursed in minutes, not weeks.</p>
-
-      <div className="space-y-3 mb-6">
-        <input className="w-full border rounded-lg p-3 bg-transparent" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
-        <input className="w-full border rounded-lg p-3 bg-transparent" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your PayPal email" />
-      </div>
-
-      {step === "upload" && (
-        <label className="block border-2 border-dashed rounded-xl p-10 text-center cursor-pointer hover:opacity-80">
-          <span className="text-lg font-medium">Upload a receipt photo</span>
-          <span className="block text-sm opacity-60 mt-1">JPG or PNG</span>
-          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} className="hidden" />
-        </label>
-      )}
-
-      {step === "reading" && <p className="text-center p-10">Reading your receipt…</p>}
-
-      {(step === "confirm" || step === "submitting") && receipt && (
-        <div className="border rounded-xl p-6">
-          <h2 className="font-semibold mb-4">Does this look right?</h2>
-          <dl className="grid grid-cols-2 gap-2 text-sm mb-6">
-            <dt className="opacity-60">Vendor</dt><dd>{receipt.vendor}</dd>
-            <dt className="opacity-60">Date</dt><dd>{receipt.date ?? "Unreadable"}</dd>
-            <dt className="opacity-60">Total</dt><dd>${receipt.total.toFixed(2)}</dd>
-            <dt className="opacity-60">Category</dt><dd className="capitalize">{receipt.category}</dd>
-          </dl>
-          <div className="flex gap-3">
-            <button onClick={submit} disabled={step === "submitting"} className="flex-1 bg-blue-600 text-white rounded-lg p-3 font-medium disabled:opacity-50">
-              {step === "submitting" ? "Submitting…" : "Submit for reimbursement"}
-            </button>
-            <button onClick={reset} className="border rounded-lg p-3">Retake</button>
+    <main className="min-h-screen bg-page text-ink">
+      <div className="max-w-lg mx-auto p-6 sm:p-10">
+        <div className="flex items-center justify-between mb-6">
+          <Logo />
+          <div className="flex items-center gap-3">
+            <Link href="/treasurer" className="text-sm font-medium text-brand hover:underline">
+              Treasurer view
+            </Link>
+            <ThemeToggle />
           </div>
         </div>
-      )}
+        <p className="mb-6 text-base leading-relaxed text-muted">
+          Snap your trip receipt. Get reimbursed in minutes, not weeks.
+        </p>
 
-      {step === "done" && claim && (
-        <div className={`border rounded-xl p-6 ${STATUS[claim.status]?.style ?? ""}`}>
-          <h2 className="text-xl font-semibold mb-1">{STATUS[claim.status]?.title ?? claim.status}</h2>
-          <p className="text-2xl font-bold mb-2">${claim.receipt.total.toFixed(2)} · {claim.receipt.vendor}</p>
-          <p className="text-sm opacity-80 mb-4">Why: {claim.rule}</p>
-          <button onClick={reset} className="border rounded-lg px-4 py-2">Submit another receipt</button>
+        <div className="bg-card border border-line rounded-2xl p-5 space-y-4 mb-6">
+          <div className="space-y-1.5">
+            <label htmlFor="name" className="text-[13px] font-medium text-muted">Your name</label>
+            <input id="name" className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-[13px] font-medium text-muted">Your PayPal email</label>
+            <input id="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your PayPal email" />
+          </div>
         </div>
-      )}
 
-      {error && <p className="mt-4 text-red-600">{error}</p>}
+        {step === "upload" && (
+          <label className="flex flex-col items-center gap-2.5 border-2 border-dashed border-brand bg-soft rounded-2xl px-5 py-10 text-center cursor-pointer hover:opacity-90 focus-within:ring-2 focus-within:ring-brand">
+            <span className="w-14 h-14 rounded-full bg-brand flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" className="text-on-brand" aria-hidden="true">
+                <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+                <circle cx="12" cy="13" r="3.5" />
+              </svg>
+            </span>
+            <span className="text-lg font-semibold">Upload a receipt photo</span>
+            <span className="text-sm text-muted">JPG, PNG or WebP · or use your camera</span>
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} className="sr-only" />
+          </label>
+        )}
+
+        {step === "reading" && <p className="text-center p-10 text-muted">Reading your receipt…</p>}
+
+        {(step === "confirm" || step === "submitting") && receipt && (
+          <div className="bg-card border border-line rounded-2xl p-6">
+            <h2 className="font-semibold mb-4">Does this look right?</h2>
+            <dl className="grid grid-cols-2 gap-2 text-sm mb-6">
+              <dt className="text-muted">Vendor</dt><dd>{receipt.vendor}</dd>
+              <dt className="text-muted">Date</dt><dd>{receipt.date ?? "Unreadable"}</dd>
+              <dt className="text-muted">Total</dt><dd>${receipt.total.toFixed(2)}</dd>
+              <dt className="text-muted">Category</dt><dd className="capitalize">{receipt.category}</dd>
+            </dl>
+            <div className="flex gap-3">
+              <button
+                onClick={submit}
+                disabled={step === "submitting"}
+                className="flex-1 h-11 bg-brand text-on-brand rounded-xl font-semibold disabled:opacity-50"
+              >
+                {step === "submitting" ? "Submitting…" : "Submit for reimbursement"}
+              </button>
+              <button onClick={reset} className="h-11 px-4 border border-line rounded-xl font-semibold">
+                Retake
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "done" && claim && (
+          <div className={`border rounded-2xl p-6 ${STATUS[claim.status]?.style ?? "bg-card border-line"}`}>
+            <h2 className="text-xl font-semibold mb-1">{STATUS[claim.status]?.title ?? claim.status}</h2>
+            <p className="text-2xl font-bold mb-2">
+              ${claim.receipt.total.toFixed(2)} · {claim.receipt.vendor}
+            </p>
+            <p className="text-sm mb-4">Why: {claim.rule}</p>
+            <button onClick={reset} className="h-11 px-4 border border-current rounded-xl font-semibold">
+              Submit another receipt
+            </button>
+          </div>
+        )}
+
+        {error && <p className="mt-4 text-no-tx">{error}</p>}
+
+        <p className="mt-6 text-[13px] text-muted">
+          Paid via PayPal · every claim is logged for audit
+        </p>
+      </div>
     </main>
   );
 }
