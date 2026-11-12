@@ -11,11 +11,15 @@ export type Claim = {
   decision: Decision["decision"];
   rule: string;
   status: "paid" | "pending_review" | "rejected" | "denied" | "payout_failed";
+  payAmount?: number; // set when less than the receipt total is (or will be) paid
   payoutBatchId?: string;
   reviewedAt?: string;
   reviewedBy?: string;
   createdAt: string;
 };
+
+/** What this claim pays (or paid): the receipt total, unless it was reduced to a limit. */
+export const amountToPay = (c: Pick<Claim, "payAmount" | "receipt">) => c.payAmount ?? c.receipt.total;
 
 export async function getClaims(): Promise<Claim[]> {
   return read<Claim>("claims");

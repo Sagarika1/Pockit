@@ -15,6 +15,8 @@ export type Receipt = {
 export type Decision = {
   decision: "auto_approve" | "needs_review" | "reject";
   rule: string;
+  /** Set when we pay less than the receipt total (the member is paid back up to the limit). */
+  payAmount?: number;
 };
 
 const cents = (n: number) => Math.round(n * 100);
@@ -49,11 +51,24 @@ export function evaluate(r: Receipt, rules: Rules = DEFAULT_RULES): Decision {
       return { decision: "needs_review", rule: `Dated outside the event (${shortDate(rules.eventStart)} to ${shortDate(rules.eventEnd)})` };
   }
 
-  if (c.cap !== null && cents(r.total) > cents(c.cap))
-    return { decision: "needs_review", rule: `Over the ${usd(c.cap)} limit for ${label}` };
+  // Over the limit: pay up to the limit (if the organization allows it), otherwise let the treasurer decide.
+  let pay = r.total;
+  let partial = false;
+  if (c.cap !== null && cents(r.total) > cents(c.cap)) {
+    if (rules.partialPay === false) return { decision: "needs_review", rule: `Over the ${usd(c.cap)} limit for ${label}` };
+    pay = c.cap;
+    partial = true;
+  }
 
-  if (cents(r.total) > cents(rules.autoPayCeiling))
+  if (cents(pay) > cents(rules.autoPayCeiling))
     return { decision: "needs_review", rule: `Over the ${usd(rules.autoPayCeiling)} automatic payment limit` };
+
+  if (partial && c.cap !== null)
+    return {
+      decision: "auto_approve",
+      payAmount: pay,
+      rule: `Paid ${usd(pay)} of ${usd(r.total)}. The limit for ${label} is ${usd(c.cap)}`,
+    };
 
   const why =
     r.category === "registration"

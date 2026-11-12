@@ -99,6 +99,7 @@ export default function RulesPage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-14">
       <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Your rules</h1>
+      <div className="mt-2 h-1 w-9 rounded-full bg-accent" aria-hidden="true" />
       <p className="mt-2 max-w-3xl text-lg text-muted">Set your spending rules once. Pockit checks every receipt against them. Anything that breaks a rule comes to you.</p>
 
       {/* Upload */}
@@ -199,6 +200,13 @@ export default function RulesPage() {
                 <span>
                   <span className="font-semibold">Never reimburse alcohol.</span>
                   <span className="block text-muted">Receipts with alcohol are turned down.</span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 text-[15px]">
+                <input id="partialPay" type="checkbox" className="mt-1 h-5 w-5 accent-[var(--brand)]" checked={rules.partialPay !== false} onChange={(e) => change({ ...rules, partialPay: e.target.checked })} />
+                <span>
+                  <span className="font-semibold">Pay up to the limit when someone spends more.</span>
+                  <span className="block text-muted">Example: with a $50 meals limit, a $60 dinner pays back $50. If you turn this off, it comes to you to decide.</span>
                 </span>
               </label>
               <Field id="ceiling" label="Never pay automatically more than ($)" hint="Anything above this comes to you, whatever the type.">

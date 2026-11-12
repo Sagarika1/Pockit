@@ -73,6 +73,7 @@ export default function PeoplePage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-14">
       <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">People</h1>
+      <div className="mt-2 h-1 w-9 rounded-full bg-accent" aria-hidden="true" />
       <p className="mt-2 text-lg text-muted">Approve people who ask to join, or add them yourself. Only approved people can submit receipts.</p>
 
       <div className="mt-8">

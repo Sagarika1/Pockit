@@ -10,6 +10,9 @@ export const ghostBtn = `inline-flex h-12 items-center justify-center rounded-fu
 export const smallPrimaryBtn = `inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-semibold text-on-brand transition-opacity hover:opacity-90 disabled:opacity-50 ${focus}`;
 export const smallGhostBtn = `inline-flex h-10 items-center justify-center rounded-full border border-line bg-card px-5 text-sm font-semibold text-ink transition-colors hover:bg-soft disabled:opacity-50 ${focus}`;
 
+export const smallDangerBtn = `inline-flex h-10 items-center justify-center rounded-full border border-accent bg-card px-5 text-sm font-semibold text-accent transition-colors hover:bg-accent-soft disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`;
+export const smallDangerSolidBtn = `inline-flex h-10 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`;
+
 export function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import StatusChip from "@/components/StatusChip";
-import { ErrorText, PageLoading, smallGhostBtn, smallPrimaryBtn } from "@/components/ui";
+import { ErrorText, PageLoading, smallDangerBtn, smallDangerSolidBtn, smallGhostBtn, smallPrimaryBtn } from "@/components/ui";
 import { useRequireRole } from "@/components/useMe";
 import AuditGrid from "./AuditGrid";
 
@@ -17,6 +17,7 @@ type Claim = {
   reviewedAt?: string;
   reviewedBy?: string;
   payoutBatchId?: string;
+  payAmount?: number;
 };
 type Person = { id: string; status: string };
 type Text = { id: string; to: string; body: string; status: string; error?: string; createdAt: string };
@@ -25,7 +26,7 @@ function Stat({ label, value, accent, warn, href }: { label: string; value: stri
   const body = (
     <>
       <p className="mb-1 text-sm text-muted">{label}</p>
-      <p className={`text-4xl font-bold tracking-tight tabular-nums ${accent ? "text-brand" : warn ? "text-wa-tx" : "text-ink"}`}>{value}</p>
+      <p className={`text-4xl font-bold tracking-tight tabular-nums ${accent ? "text-brand" : warn ? "text-accent" : "text-ink"}`}>{value}</p>
     </>
   );
   const cls = "block rounded-2xl border border-line bg-card px-6 py-5";
@@ -47,6 +48,9 @@ export default function TreasurerPage() {
   const [texts, setTexts] = useState<{ mode: string; messages: Text[] }>({ mode: "demo", messages: [] });
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // Which request is waiting for "are you sure?", and how much the treasurer will pay
+  const [confirming, setConfirming] = useState<{ id: string; action: "approve" | "deny" } | null>(null);
+  const [amount, setAmount] = useState("");
 
   const load = useCallback(async () => {
     const [c, p, t] = await Promise.all([
@@ -63,15 +67,22 @@ export default function TreasurerPage() {
     if (ready) load();
   }, [ready, load]);
 
+  function ask(c: Claim, action: "approve" | "deny") {
+    setError("");
+    setAmount(c.receipt.total.toFixed(2));
+    setConfirming({ id: c.id, action });
+  }
+
   async function act(id: string, action: "approve" | "deny") {
     setBusy(id);
     setError("");
     const res = await fetch(`/api/claims/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify(action === "approve" ? { action, amount } : { action }),
     });
     if (!res.ok) setError((await res.json()).error || "Something went wrong.");
+    else setConfirming(null);
     await load();
     setBusy(null);
   }
@@ -79,7 +90,7 @@ export default function TreasurerPage() {
   if (!ready) return <PageLoading />;
 
   const pending = claims.filter((c) => c.status === "pending_review");
-  const paidTotal = claims.filter((c) => c.status === "paid").reduce((s, c) => s + c.receipt.total, 0);
+  const paidTotal = claims.filter((c) => c.status === "paid").reduce((s, c) => s + (c.payAmount ?? c.receipt.total), 0);
   const automatic = claims.filter((c) => !c.reviewedAt && c.status !== "pending_review").length;
   const waitingPeople = people.filter((p) => p.status === "pending").length;
 
@@ -87,6 +98,7 @@ export default function TreasurerPage() {
     <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-14">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{me?.org?.name ?? "Overview"}</h1>
+        <div className="mt-2 h-1 w-9 rounded-full bg-accent" aria-hidden="true" />
         <p className="mt-2 text-lg text-muted">Approve or deny anything that needs a decision, and see every payment in one place.</p>
       </div>
 
@@ -107,25 +119,77 @@ export default function TreasurerPage() {
         ) : (
           <ul className="space-y-3">
             {pending.map((c) => (
-              <li key={c.id} className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 sm:flex-row sm:items-center">
-                <div className="min-w-0 flex-1">
-                  <p>
-                    <span className="font-semibold">{c.memberName}</span> <span className="text-muted">at {c.receipt.vendor}</span>
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <StatusChip status="pending_review" />
-                    <span className="text-sm text-muted">{c.rule}</span>
+              <li key={c.id} className="rounded-2xl border border-line bg-card p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <p>
+                      <span className="font-semibold">{c.memberName}</span> <span className="text-muted">at {c.receipt.vendor}</span>
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <StatusChip status="pending_review" />
+                      <span className="text-sm text-muted">{c.rule}</span>
+                    </div>
                   </div>
+                  <p className="text-2xl font-bold tabular-nums">${c.receipt.total.toFixed(2)}</p>
+                  {confirming?.id !== c.id && (
+                    <div className="flex gap-2">
+                      <button disabled={busy === c.id} onClick={() => ask(c, "approve")} className={smallPrimaryBtn}>
+                        Approve and pay
+                      </button>
+                      <button disabled={busy === c.id} onClick={() => ask(c, "deny")} className={smallDangerBtn}>
+                        Deny
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <p className="text-2xl font-bold tabular-nums">${c.receipt.total.toFixed(2)}</p>
-                <div className="flex gap-2">
-                  <button disabled={busy === c.id} onClick={() => act(c.id, "approve")} className={smallPrimaryBtn}>
-                    {busy === c.id ? "Paying…" : "Approve and pay"}
-                  </button>
-                  <button disabled={busy === c.id} onClick={() => act(c.id, "deny")} className={smallGhostBtn}>
-                    Deny
-                  </button>
-                </div>
+
+                {confirming?.id === c.id && confirming.action === "approve" && (
+                  <div role="group" aria-label="Confirm payment" className="mt-4 rounded-xl border border-brand/40 bg-soft p-4">
+                    <p className="font-semibold">Are you sure? This sends real money from your PayPal.</p>
+                    <p className="mt-1 text-sm text-muted">
+                      {c.memberName} will be paid at {c.memberEmail ?? "their PayPal email"}. They’ll get a text.
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-end gap-3">
+                      <label className="text-sm font-medium text-muted">
+                        Amount to pay
+                        <span className="mt-1 flex items-center gap-1 rounded-xl border border-line bg-card px-3">
+                          <span className="text-ink">$</span>
+                          <input
+                            aria-label="Amount to pay"
+                            inputMode="decimal"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="h-10 w-28 bg-transparent text-ink focus:outline-none"
+                          />
+                        </span>
+                      </label>
+                      <p className="pb-2 text-xs text-muted">Pay less than ${c.receipt.total.toFixed(2)} for a partial reimbursement.</p>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <button disabled={busy === c.id} onClick={() => act(c.id, "approve")} className={smallPrimaryBtn}>
+                        {busy === c.id ? "Paying…" : "Yes, pay"}
+                      </button>
+                      <button disabled={busy === c.id} onClick={() => setConfirming(null)} className={smallGhostBtn}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {confirming?.id === c.id && confirming.action === "deny" && (
+                  <div role="group" aria-label="Confirm denial" className="mt-4 rounded-xl border border-accent/40 bg-accent-soft p-4">
+                    <p className="font-semibold">Are you sure you want to deny this?</p>
+                    <p className="mt-1 text-sm text-muted">{c.memberName} won’t be paid and will get a text. You can’t undo this.</p>
+                    <div className="mt-4 flex gap-2">
+                      <button disabled={busy === c.id} onClick={() => act(c.id, "deny")} className={smallDangerSolidBtn}>
+                        {busy === c.id ? "Denying…" : "Yes, deny"}
+                      </button>
+                      <button disabled={busy === c.id} onClick={() => setConfirming(null)} className={smallGhostBtn}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

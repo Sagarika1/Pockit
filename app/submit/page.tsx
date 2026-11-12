@@ -6,7 +6,8 @@ import { useRequireRole, type Membership } from "@/components/useMe";
 import type { Receipt } from "@/lib/policy";
 import { describeRules, type Rules } from "@/lib/rules";
 
-type ClaimRow = { id: string; status: string; rule: string; receipt: Receipt; createdAt: string; memberEmail: string };
+type ClaimRow = { id: string; status: string; rule: string; receipt: Receipt; createdAt: string; memberEmail: string; payAmount?: number };
+const partOf = (c: { status: string; payAmount?: number; receipt: Receipt }) => (c.payAmount !== undefined && c.payAmount < c.receipt.total ? c.payAmount : null);
 type Step = "upload" | "reading" | "confirm" | "submitting" | "done";
 
 const RESULT: Record<string, { title: string; style: string }> = {
@@ -177,6 +178,7 @@ export default function SubmitPage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-14">
       <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Submit a receipt</h1>
+      <div className="mt-2 h-1 w-9 rounded-full bg-accent" aria-hidden="true" />
       <p className="mt-2 text-lg text-muted">Take a photo of your receipt. You’ll hear back in minutes.</p>
 
       {others.length > 0 && (
@@ -270,7 +272,7 @@ export default function SubmitPage() {
               <div className={`rounded-2xl border p-6 ${RESULT[claim.status]?.style ?? "border-line bg-card"}`}>
                 <h2 className="mb-1 text-xl font-semibold">{RESULT[claim.status]?.title ?? claim.status}</h2>
                 <p className="mb-2 text-2xl font-bold">
-                  ${claim.receipt.total.toFixed(2)} · {claim.receipt.vendor}
+                  {partOf(claim) !== null ? `$${partOf(claim)!.toFixed(2)} of $${claim.receipt.total.toFixed(2)}` : `$${claim.receipt.total.toFixed(2)}`} · {claim.receipt.vendor}
                 </p>
                 <p className="mb-1 text-[15px]">{claim.rule}</p>
                 {claim.status === "paid" && <p className="text-sm">Sent to {claim.memberEmail}.</p>}
@@ -312,7 +314,9 @@ export default function SubmitPage() {
                         <p className="truncate text-sm text-muted">{c.rule}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className="font-semibold tabular-nums">${c.receipt.total.toFixed(2)}</span>
+                        <span className="font-semibold tabular-nums">
+                          {partOf(c) !== null ? `$${partOf(c)!.toFixed(2)} of $${c.receipt.total.toFixed(2)}` : `$${c.receipt.total.toFixed(2)}`}
+                        </span>
                         <StatusChip status={c.status} />
                       </div>
                     </li>

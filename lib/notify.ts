@@ -1,6 +1,7 @@
 import { getTreasurer, getUser, type Membership, type Org, type User } from "./db";
+import { CATEGORY_LABEL } from "./rules";
 import { sendSms } from "./sms";
-import type { Claim } from "./store";
+import { amountToPay, type Claim } from "./store";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const sentence = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`);
@@ -11,14 +12,20 @@ export async function textMemberAboutClaim(claim: Claim, org: Org, decidedBy: "r
   const member = claim.userId ? await getUser(claim.userId) : undefined;
   if (!member) return;
   const amount = usd(claim.receipt.total);
+  const paid = usd(amountToPay(claim));
+  const partial = Math.round(amountToPay(claim) * 100) < Math.round(claim.receipt.total * 100);
   const v = claim.receipt.vendor;
   let body: string;
   switch (claim.status) {
     case "paid":
       body =
         decidedBy === "rules"
-          ? `Pockit: Your reimbursement request was approved! ${amount} for ${v} is on its way to your PayPal.`
-          : `Pockit: Good news! ${org.name} approved your ${amount} request for ${v}. It's on its way to your PayPal.`;
+          ? partial
+            ? `Pockit: Your reimbursement request was approved! ${paid} of your ${amount} for ${v} is on its way to your PayPal. That's the limit for ${CATEGORY_LABEL[claim.receipt.category].toLowerCase()}.`
+            : `Pockit: Your reimbursement request was approved! ${amount} for ${v} is on its way to your PayPal.`
+          : partial
+            ? `Pockit: Good news! ${org.name} approved ${paid} of your ${amount} request for ${v}. It's on its way to your PayPal.`
+            : `Pockit: Good news! ${org.name} approved your ${amount} request for ${v}. It's on its way to your PayPal.`;
       break;
     case "pending_review":
       body = `Pockit: We got your ${amount} receipt from ${v}. ${org.name}'s treasurer will take a look. ${sentence(claim.rule)} We'll text you when it's decided.`;

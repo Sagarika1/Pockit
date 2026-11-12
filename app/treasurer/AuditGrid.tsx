@@ -16,6 +16,7 @@ type Claim = {
   reviewedAt?: string;
   reviewedBy?: string;
   payoutBatchId?: string;
+  payAmount?: number;
 };
 
 const modules = [AllCommunityModule];
@@ -62,7 +63,7 @@ function VendorCell(p: ICellRendererParams<Claim>) {
   );
 }
 
-const money = (p: ValueFormatterParams<Claim, number>) => (p.value == null ? "" : `$${p.value.toFixed(2)}`);
+const money = (p: ValueFormatterParams<Claim, number>) => (p.value == null ? "–" : `$${p.value.toFixed(2)}`);
 
 const decidedBy = (c?: Claim) => (c?.reviewedAt ? "Treasurer" : c?.status === "pending_review" ? "Pending" : "Automatic");
 
@@ -103,7 +104,17 @@ export default function AuditGrid({ claims }: { claims: Claim[] }) {
       },
       { colId: "member", headerName: "Member", field: "memberName", flex: 1, minWidth: 100, hide: level >= 2 },
       { colId: "vendor", headerName: "Vendor", valueGetter: (p) => p.data?.receipt.vendor, cellRenderer: VendorCell, flex: 1.3, minWidth: 130, autoHeight: true },
-      { colId: "amount", headerName: "Amount", field: "receipt.total", filter: "agNumberColumnFilter", valueFormatter: money, cellClass: "tabular-nums font-semibold", flex: 0.7, minWidth: 90 },
+      { colId: "amount", headerName: "Receipt total", field: "receipt.total", filter: "agNumberColumnFilter", valueFormatter: money, cellClass: "tabular-nums font-semibold", flex: 0.7, minWidth: 90 },
+      {
+        colId: "paid",
+        headerName: "Paid",
+        valueGetter: (p) => (p.data?.status === "paid" ? (p.data.payAmount ?? p.data.receipt.total) : null),
+        valueFormatter: money,
+        filter: "agNumberColumnFilter",
+        cellClass: "tabular-nums font-semibold",
+        flex: 0.7,
+        minWidth: 90,
+      },
       { colId: "why", headerName: "Why", field: "rule", flex: 2, minWidth: 170, wrapText: true, autoHeight: true },
       { colId: "status", headerName: "Status", field: "status", cellRenderer: StatusCell, flex: 1.2, minWidth: 150 },
       { colId: "by", headerName: "Decided by", valueGetter: (p) => decidedBy(p.data), flex: 0.9, minWidth: 100, hide: level >= 1 },

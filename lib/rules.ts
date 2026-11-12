@@ -31,6 +31,7 @@ export type Rules = {
   eventEnd: string; // YYYY-MM-DD
   requireEventDates: boolean;
   blockAlcohol: boolean;
+  partialPay: boolean; // over a limit? pay up to the limit instead of sending it to the treasurer
   autoPayCeiling: number; // never pay automatically above this, whatever the category
   registrationVendorKeywords: string[]; // registration vendor must contain one (empty = no check)
   categories: Record<Category, CategoryRule>;
@@ -38,10 +39,11 @@ export type Rules = {
 
 export const DEFAULT_RULES: Rules = {
   eventName: "National Student Engineering Conference",
-  eventStart: "2026-11-12",
-  eventEnd: "2026-11-15",
+  eventStart: "2026-11-05",
+  eventEnd: "2026-11-08",
   requireEventDates: true,
   blockAlcohol: true,
+  partialPay: true,
   autoPayCeiling: 200,
   registrationVendorKeywords: ["engineering conference", "nsec"],
   categories: {
@@ -107,6 +109,7 @@ export function sanitizeRules(input: unknown, base: Rules = DEFAULT_RULES): Rule
     eventEnd,
     requireEventDates: bool(i.requireEventDates, base.requireEventDates),
     blockAlcohol: bool(i.blockAlcohol, base.blockAlcohol),
+    partialPay: bool(i.partialPay, base.partialPay),
     autoPayCeiling: money(i.autoPayCeiling, base.autoPayCeiling),
     registrationVendorKeywords: keywords(i.registrationVendorKeywords, base.registrationVendorKeywords),
     categories,
@@ -136,6 +139,8 @@ export function describeRules(r: Rules): string[] {
     else if (c.action === "review") lines.push(`${label}: your treasurer approves each one`);
     else lines.push(`${label}: not reimbursed`);
   }
+  const anyCap = CATEGORY_KEYS.some((k) => r.categories[k].action === "auto" && r.categories[k].cap !== null);
+  if (anyCap) lines.push(r.partialPay !== false ? "Spent more than a limit? You're paid back up to the limit" : "Spent more than a limit? Your treasurer decides");
   if (r.requireEventDates)
     lines.push(`Receipts must be dated ${shortDate(r.eventStart)} to ${shortDate(r.eventEnd)}${r.eventName ? ` (${r.eventName})` : ""}`);
   if (r.blockAlcohol) lines.push("Alcohol is never reimbursed");

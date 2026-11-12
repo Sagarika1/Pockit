@@ -17,7 +17,6 @@ function itemsFor(role: "treasurer" | "member" | null): NavItem[] {
     ];
   if (role === "member") return [{ href: "/submit", label: "Submit a receipt" }];
   return [
-    { href: "/#who", label: "Who it’s for" },
     { href: "/#how", label: "How it works" },
   ];
 }
@@ -65,7 +64,7 @@ export default function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-card">
+    <header className="sticky top-0 z-40 border-b border-line border-t-4 border-t-accent bg-card">
       <div className="mx-auto flex h-[80px] max-w-7xl items-center justify-between gap-4 px-6 lg:px-10">
         <div className="flex items-center gap-8">
           <Link href="/" aria-label="Pockit home">

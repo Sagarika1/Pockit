@@ -8,7 +8,7 @@ import { sendPayout } from "@/lib/paypal";
 import { evaluate, type Receipt } from "@/lib/policy";
 import { CATEGORY_KEYS } from "@/lib/rules";
 import { verifyReceipt } from "@/lib/session";
-import { getClaims, updateClaim, type Claim } from "@/lib/store";
+import { amountToPay, getClaims, updateClaim, type Claim } from "@/lib/store";
 
 // Treasurers see every claim for their organization. Members see their own.
 export async function GET() {
@@ -65,11 +65,12 @@ export async function POST(req: Request) {
   const receipt = cleanReceipt(b.receipt);
   if (!receipt) return bad("That receipt didn't look right. Please upload it again.");
 
-  let { decision, rule } = evaluate(receipt, org.rules);
+  let { decision, rule, payAmount } = evaluate(receipt, org.rules);
   if (decision === "auto_approve" && receipt.currency !== "USD") {
     decision = "needs_review";
     rule = "This receipt isn't in US dollars";
   }
+  if (decision !== "auto_approve") payAmount = undefined;
 
   const claim: Claim = {
     id: randomUUID(),
@@ -80,6 +81,7 @@ export async function POST(req: Request) {
     receipt,
     decision,
     rule,
+    ...(payAmount !== undefined ? { payAmount } : {}),
     status: decision === "reject" ? "rejected" : "pending_review",
     createdAt: new Date().toISOString(),
   };
@@ -92,6 +94,7 @@ export async function POST(req: Request) {
     if (repeat && claim.decision === "auto_approve") {
       claim.decision = "needs_review";
       claim.rule = "This looks like a receipt that was already submitted";
+      delete claim.payAmount;
     }
     rows.unshift(claim);
   });
@@ -99,7 +102,7 @@ export async function POST(req: Request) {
   if (claim.decision === "auto_approve") {
     let paid: { batch?: string; failed?: boolean };
     try {
-      paid = { batch: await sendPayout(claim.memberEmail, receipt.total, `Pockit: ${receipt.vendor}`) };
+      paid = { batch: await sendPayout(claim.memberEmail, amountToPay(claim), `Pockit: ${receipt.vendor}`) };
     } catch (err) {
       console.error("Payout failed:", err);
       paid = { failed: true };

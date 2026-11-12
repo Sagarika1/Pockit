@@ -15,6 +15,10 @@
   --ok-bg: #DDF3E4;  --ok-tx: #14532D;
   --no-bg: #FBE3E3;  --no-tx: #8A1C1C;
   --wa-bg: #FFF0CC;  --wa-tx: #6B4A00;
+  /* Red accent, used next to the blue (highlights, Deny, the top stripe) */
+  --accent: #D3202F;
+  --on-accent: #FFFFFF;
+  --accent-soft: #FDE8EA;
 }
 
 .dark {
@@ -29,6 +33,9 @@
   --ok-bg: #12351F;  --ok-tx: #9BE3B0;
   --no-bg: #3F1A1C;  --no-tx: #FFB4B4;
   --wa-bg: #3A2E10;  --wa-tx: #FFD98A;
+  --accent: #FF6470;
+  --on-accent: #2B0509;
+  --accent-soft: #3B1A20;
 }
 
 /* Turns the variables into Tailwind classes: bg-page, text-ink, border-line... */
@@ -44,6 +51,9 @@
   --color-ok-bg: var(--ok-bg);  --color-ok-tx: var(--ok-tx);
   --color-no-bg: var(--no-bg);  --color-no-tx: var(--no-tx);
   --color-wa-bg: var(--wa-bg);  --color-wa-tx: var(--wa-tx);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
 }
 
 body {
