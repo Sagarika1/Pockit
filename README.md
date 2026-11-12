@@ -22,7 +22,7 @@ In clubs and volunteer groups, the people who run events pay out of pocket and t
 | Member (approved) | `demo-member@pockit.demo` | `pockit-demo-2026` | Member |
 | Applicant (waiting to join) | `demo-applicant@pockit.demo` | `pockit-demo-2026` | Member |
 
-The hosted demo uses the **real AI**: Claude reads any receipt photo you upload, and any policy document on the Rules page. You can also try the 8 test receipts in [`sample-receipts/`](sample-receipts) (download them from this repo). Payments go to the PayPal sandbox (test money). The first visit can take about a minute while the free host wakes up. The host resets its files when it restarts, and the demo accounts come back by themselves.
+The hosted demo uses the **real AI**: Claude reads any receipt photo you upload, and any policy document on the Rules page. On the member screen, tap any of the 8 sample receipts to try it with no download (they are also in [`sample-receipts/`](sample-receipts)). Payments go to the PayPal sandbox (test money). The first visit can take about a minute while the free host wakes up. The host resets its files when it restarts, and the demo accounts come back by themselves.
 
 ### Option B: run it yourself (about 5 minutes)
 
@@ -53,8 +53,8 @@ Open http://localhost:3000 and log in with the demo accounts above.
 
 ## A 3-minute walkthrough
 
-1. **Member:** log in as the demo member. Upload `meals-over-cap.png`. It's a $109.02 dinner and the meals limit is $50, so Pockit pays **$50** and explains why. A text message is sent.
-2. Upload `hotel.png`. Hotels need approval, so it waits for the treasurer.
+1. **Member:** log in as the demo member. Tap the **Team dinner** sample (or upload `meals-over-cap.png`). It's a $109.02 dinner and the meals limit is $50, so Pockit pays **$50** and explains why. A text message is sent.
+2. Tap the **Hotel** sample. Hotels need approval, so it waits for the treasurer.
 3. **Treasurer:** log in on the Organization tab. Under "Needs your decision", press **Approve and pay**. Pockit asks "Are you sure?" and lets you pay less than the full amount. Confirm. The member is texted.
 4. Look at the **audit log**: every request, why it was decided, who decided, and what was paid. Search, sort, filter and export it.
 5. Open **People**: approve the applicant, or add someone yourself.

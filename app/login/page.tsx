@@ -51,6 +51,8 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn’t log you in.");
+      setBusy(false); // the page can be kept alive after logging out, so never leave the button stuck
+      setPassword("");
       router.push(data.role === "treasurer" ? "/treasurer" : "/submit");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn’t log you in.");

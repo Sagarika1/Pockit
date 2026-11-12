@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Check, ghostBtn, primaryBtn } from "@/components/ui";
+import { LoggedInOnly, LoggedOutOnly } from "@/components/LoggedOutOnly";
 
 const icon = (children: ReactNode) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -48,19 +49,24 @@ export default function Home() {
             </h1>
             <p className="mt-6 max-w-xl text-xl leading-snug text-muted">Snap a receipt. Get paid back through PayPal.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/signup/org" className={primaryBtn}>
-                Set up your organization
-              </Link>
-              <Link href="/signup/member" className={ghostBtn}>
-                Join your organization
-              </Link>
+              <LoggedOutOnly>
+                <Link href="/signup/org" className={primaryBtn}>
+                  Set up your organization
+                </Link>
+                <Link href="/signup/member" className={ghostBtn}>
+                  Join your organization
+                </Link>
+              </LoggedOutOnly>
+              <LoggedInOnly />
             </div>
-            <p className="mt-5 text-sm text-muted">
-              Already have an account?{" "}
-              <Link href="/login" className="font-semibold text-brand hover:underline">
-                Log in
-              </Link>
-            </p>
+            <LoggedOutOnly>
+              <p className="mt-5 text-sm text-muted">
+                Already have an account?{" "}
+                <Link href="/login" className="font-semibold text-brand hover:underline">
+                  Log in
+                </Link>
+              </p>
+            </LoggedOutOnly>
           </div>
 
           {/* Example of what a member sees */}
@@ -175,12 +181,15 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-6 py-12 lg:flex-row lg:items-center lg:px-10">
           <h2 className="text-3xl font-bold tracking-tight">Ready to stop fronting cash?</h2>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/signup/org" className={primaryBtn}>
-              Set up your organization
-            </Link>
-            <Link href="/signup/member" className={ghostBtn}>
-              Join your organization
-            </Link>
+            <LoggedOutOnly>
+              <Link href="/signup/org" className={primaryBtn}>
+                Set up your organization
+              </Link>
+              <Link href="/signup/member" className={ghostBtn}>
+                Join your organization
+              </Link>
+            </LoggedOutOnly>
+            <LoggedInOnly />
           </div>
         </div>
       </section>

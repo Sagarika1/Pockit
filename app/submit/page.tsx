@@ -11,6 +11,18 @@ type ClaimRow = { id: string; status: string; rule: string; receipt: Receipt; cr
 const partOf = (c: { status: string; payAmount?: number; receipt: Receipt }) => (c.payAmount !== undefined && c.payAmount < c.receipt.total ? c.payAmount : null);
 type Step = "upload" | "reading" | "confirm" | "submitting" | "done";
 
+// Test receipts the site serves itself, so nobody has to download anything
+const SAMPLES = [
+  { file: "meals-over-cap.png", label: "Team dinner", note: "Over the limit: part paid" },
+  { file: "meals-under-cap.png", label: "Lunch", note: "Paid in full" },
+  { file: "rideshare-under-cap.png", label: "Rideshare", note: "Paid in full" },
+  { file: "hotel.png", label: "Hotel", note: "Treasurer decides" },
+  { file: "flight.png", label: "Flight", note: "Treasurer decides" },
+  { file: "registration.png", label: "Registration", note: "Event fee" },
+  { file: "other-supplies.png", label: "Supplies", note: "Other purchases" },
+  { file: "meals-with-beer.png", label: "Dinner with beer", note: "Alcohol: not approved" },
+];
+
 const RESULT: Record<string, { title: string; style: string }> = {
   paid: { title: "Approved and paid", style: "bg-ok-bg text-ok-tx border-ok-tx/30" },
   pending_review: { title: "Waiting for your treasurer", style: "bg-wa-bg text-wa-tx border-wa-tx/30" },
@@ -116,9 +128,7 @@ export default function SubmitPage() {
     };
   }, [orgId]);
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function readFile(file: File) {
     setStep("reading");
     setError("");
     const form = new FormData();
@@ -131,6 +141,27 @@ export default function SubmitPage() {
       setReceipt(rest);
       setToken(receiptToken);
       setStep("confirm");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setStep("upload");
+    }
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // so the same photo can be picked again
+    if (file) await readFile(file);
+  }
+
+  // One tap on a sample receipt: load the picture from the site and read it like an uploaded photo
+  async function useSample(s: { file: string; label: string }) {
+    setStep("reading");
+    setError("");
+    try {
+      const res = await fetch(`/sample-receipts/${s.file}`);
+      if (!res.ok) throw new Error("Couldn’t load that sample.");
+      const blob = await res.blob();
+      await readFile(new File([blob], s.file, { type: blob.type || "image/png" }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setStep("upload");
@@ -221,12 +252,6 @@ export default function SubmitPage() {
               </div>
             )}
 
-            {step === "upload" && me?.demoReader && (
-              <p className="mb-4 rounded-xl border border-line bg-soft px-4 py-3 text-sm text-muted">
-                <span className="font-semibold text-ink">Demo mode.</span> Pockit can read the 8 receipts in the <code>sample-receipts</code> folder. Add an Anthropic key to read any photo.
-              </p>
-            )}
-
             {step === "upload" && (
               <label className="flex cursor-pointer flex-col items-center gap-2.5 rounded-2xl border-2 border-dashed border-brand bg-soft px-5 py-12 text-center hover:opacity-90 focus-within:ring-2 focus-within:ring-brand">
                 <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand">
@@ -239,6 +264,25 @@ export default function SubmitPage() {
                 <span className="text-sm text-muted">JPG, PNG or WebP · or use your camera</span>
                 <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} className="sr-only" />
               </label>
+            )}
+
+            {step === "upload" && (
+              <div className="mt-6">
+                <p className="font-semibold">No receipt handy? Tap a sample.</p>
+                {me?.demoReader && <p className="mt-1 text-sm text-muted">Demo mode: only these samples can be read.</p>}
+                <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {SAMPLES.map((s) => (
+                    <li key={s.file}>
+                      <button type="button" onClick={() => useSample(s)} className="group w-full rounded-xl border border-line bg-card p-2 text-left transition-colors hover:border-brand focus-visible:outline-2 focus-visible:outline-brand">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/sample-receipts/${s.file}`} alt="" loading="lazy" className="h-24 w-full rounded-lg bg-soft object-cover object-top" />
+                        <span className="mt-2 block text-sm font-semibold">{s.label}</span>
+                        <span className="block text-xs text-muted">{s.note}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             {step === "reading" && <p className="p-10 text-center text-muted">Reading your receipt…</p>}
