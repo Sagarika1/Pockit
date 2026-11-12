@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Check, ghostBtn, primaryBtn } from "@/components/ui";
 import { LoggedInOnly, LoggedOutOnly } from "@/components/LoggedOutOnly";
+import { TryDemoButton } from "@/components/DemoAccess";
 
 const icon = (children: ReactNode) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -49,8 +50,9 @@ export default function Home() {
             </h1>
             <p className="mt-6 max-w-xl text-xl leading-snug text-muted">Snap a receipt. Get paid back through PayPal.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <TryDemoButton />
               <LoggedOutOnly>
-                <Link href="/signup/org" className={primaryBtn}>
+                <Link href="/signup/org" className={ghostBtn}>
                   Set up your organization
                 </Link>
                 <Link href="/signup/member" className={ghostBtn}>

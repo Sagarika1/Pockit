@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { DemoNote } from "@/components/DemoAccess";
 import { ErrorText, Field, KIND_LABEL, inputClass, primaryBtn } from "@/components/ui";
 
 type OrgOption = { id: string; name: string; type: string };
@@ -39,6 +40,7 @@ export default function MemberSignupPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12 lg:py-16">
       <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Join your organization</h1>
+      <DemoNote />
       <p className="mt-3 text-lg text-muted">Create your account and ask to join. Your treasurer approves you, then you can submit receipts.</p>
 
       <form onSubmit={submit} className="mt-8 space-y-5 rounded-3xl border border-line bg-card p-6 sm:p-8">

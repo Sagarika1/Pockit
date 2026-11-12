@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ErrorText, Field, inputClass, primaryBtn, smallGhostBtn } from "@/components/ui";
 import { useMe } from "@/components/useMe";
+import { loginAsDemo } from "@/components/DemoAccess";
 
 type Tab = "member" | "treasurer";
 
@@ -31,12 +32,18 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Demo accounts (only offered when the demo is switched on). The password is public in the README.
-  function fillDemo(as: Tab, demoEmail: string) {
-    setTab(as);
-    setEmail(demoEmail);
-    setPassword("pockit-demo-2026");
+  // Demo accounts (only offered when the demo is switched on): one click logs straight in
+  async function demoLogin(as: Tab) {
+    setBusy(true);
     setError("");
+    const err = await loginAsDemo(as);
+    if (err) {
+      setError(err);
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
+    router.push(as === "treasurer" ? "/treasurer" : "/submit");
   }
 
   async function submit(e: React.FormEvent) {
@@ -68,12 +75,12 @@ export default function LoginPage() {
       {me?.demo && (
         <div className="mt-6 rounded-2xl border-2 border-brand bg-soft p-5" aria-label="Demo logins">
           <p className="font-semibold">Trying the demo?</p>
-          <p className="mt-1 text-sm text-muted">Pick one to fill in the login, then press Log in.</p>
+          <p className="mt-1 text-sm text-muted">One tap and you are in. No sign-up needed.</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" className={smallGhostBtn} onClick={() => fillDemo("treasurer", "demo-treasurer@pockit.demo")}>
+            <button type="button" className={smallGhostBtn} disabled={busy} onClick={() => demoLogin("treasurer")}>
               Demo treasurer
             </button>
-            <button type="button" className={smallGhostBtn} onClick={() => fillDemo("member", "demo-member@pockit.demo")}>
+            <button type="button" className={smallGhostBtn} disabled={busy} onClick={() => demoLogin("member")}>
               Demo member
             </button>
           </div>
