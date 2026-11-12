@@ -14,7 +14,7 @@ In clubs and volunteer groups, the people who run events pay out of pocket and t
 
 ### Option A: hosted demo (nothing to install)
 
-> **Demo URL:** `https://YOUR-APP.onrender.com` (add the real link here before submitting)
+> **Demo URL:** `(https://pockit-apk4.onrender.com)` 
 
 | Role | Email | Password | Log in on the tab |
 | --- | --- | --- | --- |
