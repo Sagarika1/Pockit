@@ -14,6 +14,8 @@ export type Me = {
   user: { id: string; role: "treasurer" | "member"; name: string; email: string; phone?: string; paypalEmail?: string } | null;
   org?: { id: string; name: string; type: string };
   memberships?: Membership[];
+  demo?: boolean; // logged out and the demo accounts are on
+  demoReader?: boolean; // true when there is no Anthropic key (demo mode)
 };
 
 /** Who is logged in right now (asks the server). */

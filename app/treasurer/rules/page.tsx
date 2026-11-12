@@ -11,7 +11,7 @@ const ACTION_LABEL: Record<CategoryAction, string> = {
 };
 
 export default function RulesPage() {
-  const { ready } = useRequireRole("treasurer");
+  const { me, ready } = useRequireRole("treasurer");
   const [rules, setRules] = useState<Rules>(defaultRules());
   const [keywords, setKeywords] = useState("");
   const [loaded, setLoaded] = useState(false);
@@ -108,6 +108,11 @@ export default function RulesPage() {
         <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-muted">
           Have a budget policy or reimbursement guidelines? Upload it as a PDF, a photo or a text file. Pockit fills in the form below. You check it and save. Nothing changes until you press Save.
         </p>
+        {me?.demoReader && (
+          <p className="mt-3 rounded-xl border border-line bg-soft px-4 py-3 text-sm text-muted">
+            <span className="font-semibold text-ink">Demo mode.</span> Any file shows a saved example. Add an Anthropic key to read your own policy.
+          </p>
+        )}
         <label className={`${smallGhostBtn} mt-4 cursor-pointer focus-within:outline-2 focus-within:outline-brand`}>
           {reading ? "Reading your file…" : "Choose a file"}
           <input type="file" accept=".pdf,.txt,.md,image/png,image/jpeg,image/webp" onChange={readFile} disabled={reading} className="sr-only" />

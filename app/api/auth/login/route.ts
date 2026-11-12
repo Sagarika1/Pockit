@@ -1,4 +1,5 @@
 import { startSession } from "@/lib/auth";
+import { ensureDemoSeed } from "@/lib/seed";
 import { findUserByEmail } from "@/lib/db";
 import { bad, readJson, text } from "@/lib/http";
 import { verifyPassword } from "@/lib/password";
@@ -7,6 +8,7 @@ import { verifyPassword } from "@/lib/password";
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
 export async function POST(req: Request) {
+  await ensureDemoSeed();
   const b = await readJson(req);
   if (!b) return bad("Something went wrong. Please try again.");
   const email = text(b.email, 254).toLowerCase();

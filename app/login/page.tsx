@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ErrorText, Field, inputClass, primaryBtn } from "@/components/ui";
+import { ErrorText, Field, inputClass, primaryBtn, smallGhostBtn } from "@/components/ui";
+import { useMe } from "@/components/useMe";
 
 type Tab = "member" | "treasurer";
 
@@ -23,11 +24,20 @@ const COPY: Record<Tab, { heading: string; sub: string; signup: string; signupHr
 
 export default function LoginPage() {
   const router = useRouter();
+  const { me } = useMe();
   const [tab, setTab] = useState<Tab>("member");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Demo accounts (only offered when the demo is switched on). The password is public in the README.
+  function fillDemo(as: Tab, demoEmail: string) {
+    setTab(as);
+    setEmail(demoEmail);
+    setPassword("pockit-demo-2026");
+    setError("");
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,6 +101,21 @@ export default function LoginPage() {
           </Link>
         </p>
       </form>
+
+      {me?.demo && (
+        <div className="mt-6 rounded-2xl border border-line bg-soft p-5" aria-label="Demo logins">
+          <p className="font-semibold">Trying the demo?</p>
+          <p className="mt-1 text-sm text-muted">Fill in a demo login with one click, then press Log in.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className={smallGhostBtn} onClick={() => fillDemo("treasurer", "demo-treasurer@pockit.demo")}>
+              Demo treasurer
+            </button>
+            <button type="button" className={smallGhostBtn} onClick={() => fillDemo("member", "demo-member@pockit.demo")}>
+              Demo member
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

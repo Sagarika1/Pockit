@@ -1,0 +1,29 @@
+# One-click deploy on Render: New > Blueprint > pick this repo.
+# Render's free disk is wiped on restart, so SEED_DEMO recreates the demo accounts automatically.
+services:
+  - type: web
+    name: pockit
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PAYPAL_API_BASE
+        value: https://api-m.sandbox.paypal.com
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SEED_DEMO
+        value: "true"
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DEMO_MEMBER_PAYPAL_EMAIL
+        sync: false
+      - key: APP_URL
+        sync: false

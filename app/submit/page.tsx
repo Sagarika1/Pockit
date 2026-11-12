@@ -4,6 +4,7 @@ import StatusChip from "@/components/StatusChip";
 import { ErrorText, Field, KIND_LABEL, PageLoading, ghostBtn, inputClass, primaryBtn, smallGhostBtn, smallPrimaryBtn } from "@/components/ui";
 import { useRequireRole, type Membership } from "@/components/useMe";
 import type { Receipt } from "@/lib/policy";
+import { prepareReceiptImage } from "@/lib/compressImage";
 import { describeRules, type Rules } from "@/lib/rules";
 
 type ClaimRow = { id: string; status: string; rule: string; receipt: Receipt; createdAt: string; memberEmail: string; payAmount?: number };
@@ -121,8 +122,8 @@ export default function SubmitPage() {
     setStep("reading");
     setError("");
     const form = new FormData();
-    form.append("receipt", file);
     try {
+      form.append("receipt", await prepareReceiptImage(file)); // shrinks big phone photos first
       const res = await fetch("/api/parse-receipt", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "We couldn’t read that receipt.");
@@ -218,6 +219,12 @@ export default function SubmitPage() {
                   </select>
                 </Field>
               </div>
+            )}
+
+            {step === "upload" && me?.demoReader && (
+              <p className="mb-4 rounded-xl border border-line bg-soft px-4 py-3 text-sm text-muted">
+                <span className="font-semibold text-ink">Demo mode.</span> Pockit can read the 8 receipts in the <code>sample-receipts</code> folder. Add an Anthropic key to read any photo.
+              </p>
             )}
 
             {step === "upload" && (

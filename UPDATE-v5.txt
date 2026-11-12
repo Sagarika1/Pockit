@@ -1,0 +1,4 @@
+Pockit v5: hackathon-ready (demo mode for judges, README, photo shrinking)
+Install: extract this zip to a temp folder, then from your project folder:
+  Copy-Item -Recurse -Force "$HOME\Downloads\pockit-v5\pockit-v5\*" .
+Then delete the old file sample-receipts\registration (1).png

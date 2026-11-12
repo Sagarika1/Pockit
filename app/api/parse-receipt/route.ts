@@ -3,8 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { ReceiptSchema, CATEGORIES } from "@/lib/receipt";
 import { requireMember } from "@/lib/auth";
 import { signReceipt } from "@/lib/session";
+import { DEMO_RECEIPT_MESSAGE, demoReceipt, isDemoReader } from "@/lib/demoReader";
 
-const client = new Anthropic(); // reads ANTHROPIC_API_KEY from .env.local
+// Created on first use, so the app still starts without an Anthropic key (demo mode)
+let client: Anthropic | null = null;
+const getClient = () => (client ??= new Anthropic());
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp"] as const;
 type MediaType = (typeof ALLOWED)[number];
@@ -23,11 +26,17 @@ export async function POST(req: NextRequest) {
   if (file.size > 4 * 1024 * 1024)
     return NextResponse.json({ error: "Image is over 4MB. Try a smaller photo." }, { status: 400 });
 
+  if (isDemoReader()) {
+    const canned = demoReceipt(file.name);
+    if (!canned) return NextResponse.json({ error: DEMO_RECEIPT_MESSAGE }, { status: 400 });
+    return NextResponse.json({ ...canned, receiptToken: signReceipt(canned, auth.user.id) });
+  }
+
   const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
   const today = new Date().toISOString().slice(0, 10);
 
   try {
-    const response = await client.messages.create({
+    const response = await getClient().messages.create({
       model: "claude-sonnet-5-5",
       max_tokens: 1500,
       tools: [

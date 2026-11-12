@@ -2,8 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { requireTreasurer } from "@/lib/auth";
 import { bad } from "@/lib/http";
 import { CATEGORY_KEYS, sanitizeRules } from "@/lib/rules";
+import { DEMO_RULES_SUGGESTION, isDemoReader } from "@/lib/demoReader";
 
-const client = new Anthropic(); // reads ANTHROPIC_API_KEY from .env.local
+// Created on first use, so the app still starts without an Anthropic key (demo mode)
+let client: Anthropic | null = null;
+const getClient = () => (client ??= new Anthropic());
 
 const IMAGES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -33,6 +36,11 @@ export async function POST(req: Request) {
   const isText = file.type.startsWith("text/") || name.endsWith(".txt") || name.endsWith(".md");
   if (!isPdf && !isImage && !isText) return bad("Upload a PDF, a photo or screenshot (JPG, PNG, WebP), or a .txt file.");
 
+  if (isDemoReader()) {
+    const { summary, assumptions, ...suggestion } = DEMO_RULES_SUGGESTION;
+    return Response.json({ rules: sanitizeRules(suggestion, auth.org.rules), summary, assumptions });
+  }
+
   const bytes = Buffer.from(await file.arrayBuffer());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const content: any[] = [];
@@ -58,7 +66,7 @@ Guidelines:
   });
 
   try {
-    const response = await client.messages.create({
+    const response = await getClient().messages.create({
       model: "claude-sonnet-5-5",
       max_tokens: 2000,
       tools: [
