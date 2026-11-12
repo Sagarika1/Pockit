@@ -17,6 +17,7 @@ type Claim = {
   reviewedBy?: string;
   payoutBatchId?: string;
   payAmount?: number;
+  imageId?: string;
 };
 
 const modules = [AllCommunityModule];
@@ -117,6 +118,20 @@ export default function AuditGrid({ claims }: { claims: Claim[] }) {
       },
       { colId: "why", headerName: "Why", field: "rule", flex: 2, minWidth: 170, wrapText: true, autoHeight: true },
       { colId: "status", headerName: "Status", field: "status", cellRenderer: StatusCell, flex: 1.2, minWidth: 150 },
+      {
+        colId: "photo",
+        headerName: "Receipt",
+        sortable: false,
+        filter: false,
+        flex: 0.6,
+        minWidth: 90,
+        cellRenderer: (p: { data?: Claim }) =>
+          p.data?.imageId ? (
+            <a href={`/api/claims/${p.data.id}/image`} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">
+              View
+            </a>
+          ) : null,
+      },
       { colId: "by", headerName: "Decided by", valueGetter: (p) => decidedBy(p.data), flex: 0.9, minWidth: 100, hide: level >= 1 },
       // Not shown on screen, but included when you export the CSV for an audit
       { colId: "category", headerName: "Category", field: "receipt.category", hide: true },

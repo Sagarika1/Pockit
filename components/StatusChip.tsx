@@ -6,7 +6,7 @@ const STYLES: Record<string, { label: string; cls: string; icon: React.ReactNode
   denied: NOT_APPROVED,
   payout_failed: { label: "Payment failed", cls: "bg-no-bg text-no-tx", icon: <path d="M12 7v6M12 17h.01" /> },
   pending_review: {
-    label: "Waiting on treasurer",
+    label: "Waiting approval",
     cls: "bg-wa-bg text-wa-tx",
     icon: (
       <>

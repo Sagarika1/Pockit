@@ -18,6 +18,7 @@ type Claim = {
   reviewedBy?: string;
   payoutBatchId?: string;
   payAmount?: number;
+  imageId?: string;
 };
 type Person = { id: string; status: string };
 type Text = { id: string; to: string; body: string; status: string; error?: string; createdAt: string };
@@ -129,6 +130,11 @@ export default function TreasurerPage() {
                       <StatusChip status="pending_review" />
                       <span className="text-sm text-muted">{c.rule}</span>
                     </div>
+                    {c.imageId && (
+                      <a href={`/api/claims/${c.id}/image`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand hover:underline">
+                        View receipt photo
+                      </a>
+                    )}
                   </div>
                   <p className="text-2xl font-bold tabular-nums">${c.receipt.total.toFixed(2)}</p>
                   {confirming?.id !== c.id && (

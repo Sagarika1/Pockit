@@ -65,6 +65,21 @@ export default function LoginPage() {
     <main className="mx-auto max-w-xl px-6 py-12 lg:py-16">
       <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Log in</h1>
 
+      {me?.demo && (
+        <div className="mt-6 rounded-2xl border-2 border-brand bg-soft p-5" aria-label="Demo logins">
+          <p className="font-semibold">Trying the demo?</p>
+          <p className="mt-1 text-sm text-muted">Pick one to fill in the login, then press Log in.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className={smallGhostBtn} onClick={() => fillDemo("treasurer", "demo-treasurer@pockit.demo")}>
+              Demo treasurer
+            </button>
+            <button type="button" className={smallGhostBtn} onClick={() => fillDemo("member", "demo-member@pockit.demo")}>
+              Demo member
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-2 gap-1 rounded-full border border-line bg-card p-1" role="group" aria-label="Account type">
         {(["member", "treasurer"] as Tab[]).map((t) => (
           <button
@@ -104,20 +119,6 @@ export default function LoginPage() {
         </p>
       </form>
 
-      {me?.demo && (
-        <div className="mt-6 rounded-2xl border border-line bg-soft p-5" aria-label="Demo logins">
-          <p className="font-semibold">Trying the demo?</p>
-          <p className="mt-1 text-sm text-muted">Fill in a demo login with one click, then press Log in.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" className={smallGhostBtn} onClick={() => fillDemo("treasurer", "demo-treasurer@pockit.demo")}>
-              Demo treasurer
-            </button>
-            <button type="button" className={smallGhostBtn} onClick={() => fillDemo("member", "demo-member@pockit.demo")}>
-              Demo member
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

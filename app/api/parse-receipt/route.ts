@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ReceiptSchema, CATEGORIES } from "@/lib/receipt";
 import { requireMember } from "@/lib/auth";
 import { signReceipt } from "@/lib/session";
+import { saveReceiptImage } from "@/lib/receiptImages";
 import { DEMO_RECEIPT_MESSAGE, demoReceipt, isDemoReader } from "@/lib/demoReader";
 
 // Created on first use, so the app still starts without an Anthropic key (demo mode)
@@ -26,13 +27,16 @@ export async function POST(req: NextRequest) {
   if (file.size > 4 * 1024 * 1024)
     return NextResponse.json({ error: "Image is over 4MB. Try a smaller photo." }, { status: 400 });
 
+  const bytes = Buffer.from(await file.arrayBuffer());
+
   if (isDemoReader()) {
     const canned = demoReceipt(file.name);
     if (!canned) return NextResponse.json({ error: DEMO_RECEIPT_MESSAGE }, { status: 400 });
-    return NextResponse.json({ ...canned, receiptToken: signReceipt(canned, auth.user.id) });
+    const imageId = await saveReceiptImage(auth.user.id, bytes, file.type);
+    return NextResponse.json({ ...canned, receiptToken: signReceipt(canned, auth.user.id), imageId });
   }
 
-  const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+  const base64 = bytes.toString("base64");
   const today = new Date().toISOString().slice(0, 10);
 
   try {
@@ -99,6 +103,7 @@ export async function POST(req: NextRequest) {
               text: `Extract the data from this receipt. Today's date is ${today}.
 Rules:
 - You must respond by calling the record_receipt tool exactly once. Do not reply with plain text.
+- Receipts are from the United States, so read dates like 11/05/2026 as month/day/year (November 5, 2026). Only read them as day/month if the receipt itself clearly shows it is from somewhere else (a non-US currency or address, or a day above 12 in the first position). If a date is still truly ambiguous, set needs_review to true and say why.
 - "total" is the final amount paid (after tax and tip), not the subtotal.
 - Never invent values. If something is unreadable, use null for the date, make your best guess for other fields, and set needs_review to true.
 - Check every line item for alcohol (beer, wine, cocktails, liquor, etc.) and set contains_alcohol accordingly.
@@ -139,7 +144,8 @@ Rules:
     }
 
     // The signature lets /api/claims confirm these numbers came from here, unedited
-    return NextResponse.json({ ...receipt, receiptToken: signReceipt(receipt, auth.user.id) });
+    const imageId = await saveReceiptImage(auth.user.id, bytes, file.type); // so the treasurer can look at the photo
+    return NextResponse.json({ ...receipt, receiptToken: signReceipt(receipt, auth.user.id), imageId });
   } catch (err) {
     console.error("Anthropic error:", err);
     return NextResponse.json({ error: "Receipt reader is unavailable right now" }, { status: 500 });

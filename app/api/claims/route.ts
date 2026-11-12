@@ -5,6 +5,7 @@ import { getOrg, read, update, type Membership } from "@/lib/db";
 import { bad, readJson, text } from "@/lib/http";
 import { textMemberAboutClaim, textTreasurerAboutClaim } from "@/lib/notify";
 import { sendPayout } from "@/lib/paypal";
+import { ownsImage } from "@/lib/receiptImages";
 import { evaluate, type Receipt } from "@/lib/policy";
 import { CATEGORY_KEYS } from "@/lib/rules";
 import { verifyReceipt } from "@/lib/session";
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
     decision,
     rule,
     ...(payAmount !== undefined ? { payAmount } : {}),
+    ...((await ownsImage(b.imageId, auth.user.id)) ? { imageId: b.imageId as string } : {}),
     status: decision === "reject" ? "rejected" : "pending_review",
     createdAt: new Date().toISOString(),
   };

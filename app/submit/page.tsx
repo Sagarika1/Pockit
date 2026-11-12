@@ -25,7 +25,7 @@ const SAMPLES = [
 
 const RESULT: Record<string, { title: string; style: string }> = {
   paid: { title: "Approved and paid", style: "bg-ok-bg text-ok-tx border-ok-tx/30" },
-  pending_review: { title: "Waiting for your treasurer", style: "bg-wa-bg text-wa-tx border-wa-tx/30" },
+  pending_review: { title: "Waiting approval", style: "bg-wa-bg text-wa-tx border-wa-tx/30" },
   rejected: { title: "Not approved", style: "bg-no-bg text-no-tx border-no-tx/30" },
   payout_failed: { title: "Approved, but the payment didn’t go through", style: "bg-no-bg text-no-tx border-no-tx/30" },
 };
@@ -96,6 +96,7 @@ export default function SubmitPage() {
   const [history, setHistory] = useState<ClaimRow[]>([]);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [token, setToken] = useState("");
+  const [imageId, setImageId] = useState("");
   const [claim, setClaim] = useState<ClaimRow | null>(null);
   const [step, setStep] = useState<Step>("upload");
   const [error, setError] = useState("");
@@ -137,9 +138,10 @@ export default function SubmitPage() {
       const res = await fetch("/api/parse-receipt", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "We couldn’t read that receipt.");
-      const { receiptToken, ...rest } = data as Receipt & { receiptToken: string };
+      const { receiptToken, imageId: savedImage, ...rest } = data as Receipt & { receiptToken: string; imageId?: string };
       setReceipt(rest);
       setToken(receiptToken);
+      setImageId(savedImage ?? "");
       setStep("confirm");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -174,7 +176,7 @@ export default function SubmitPage() {
     const res = await fetch("/api/claims", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ receipt, receiptToken: token, orgId }),
+      body: JSON.stringify({ receipt, receiptToken: token, orgId, imageId }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -192,6 +194,7 @@ export default function SubmitPage() {
     setReceipt(null);
     setClaim(null);
     setToken("");
+    setImageId("");
     setError("");
     setStep("upload");
   }

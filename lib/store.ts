@@ -13,6 +13,7 @@ export type Claim = {
   status: "paid" | "pending_review" | "rejected" | "denied" | "payout_failed";
   payAmount?: number; // set when less than the receipt total is (or will be) paid
   payoutBatchId?: string;
+  imageId?: string; // the saved receipt photo, if there is one
   reviewedAt?: string;
   reviewedBy?: string;
   createdAt: string;
